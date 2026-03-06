@@ -1,23 +1,64 @@
-import { Injectable, Logger } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import axios from 'axios';
 
+type NaverSort = 'sim' | 'date';
+
+interface NaverNewsApiParams {
+  query: string;
+  display: number;
+  start: number;
+  sort: NaverSort;
+}
+
+interface NaverNewsItem {
+  title?: string;
+  description?: string;
+  originallink?: string;
+  link?: string;
+  pubDate?: string;
+}
+
+interface NaverNewsApiResponse {
+  items?: NaverNewsItem[];
+}
+
 @Injectable()
 export class NewsService {
   private readonly logger = new Logger(NewsService.name);
-  private readonly newsApiKey: string;
-  private readonly newsApiUrl = 'https://newsapi.org/v2';
+  private readonly naverClientId: string;
+  private readonly naverClientSecret: string;
+  private readonly naverNewsApiUrl: string;
+  private readonly categoryQueryMap: Record<string, string> = {
+    general: '한국 주요 뉴스',
+    business: '한국 경제',
+    technology: '한국 IT 기술',
+    entertainment: '한국 연예',
+    sports: '한국 스포츠',
+    science: '한국 과학',
+    health: '한국 건강 의학',
+  };
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {
-    this.newsApiKey = this.configService.get<string>('NEWS_API_KEY') || '';
+    this.naverClientId =
+      this.configService.get<string>('NAVER_CLIENT_ID') || '';
+    this.naverClientSecret =
+      this.configService.get<string>('NAVER_CLIENT_SECRET') || '';
+    this.naverNewsApiUrl =
+      this.configService.get<string>('NAVER_NEWS_API_URL') ||
+      'https://openapi.naver.com/v1/search/news.json';
   }
 
-  async getNews(cursor?: string, limit: number = 20, category?: string, search?: string) {
-    // Build query
+  async getNews(
+    cursor?: string,
+    limit: number = 20,
+    category?: string,
+    search?: string,
+  ) {
     interface WhereClause {
       id?: { lt: string };
       categoryId?: string;
@@ -28,7 +69,7 @@ export class NewsService {
     }
 
     const where: WhereClause = {};
-    
+
     if (cursor) {
       where.id = { lt: cursor };
     }
@@ -78,7 +119,11 @@ export class NewsService {
     });
   }
 
-  async getNewsByCategory(categorySlug: string, cursor?: string, limit: number = 20) {
+  async getNewsByCategory(
+    categorySlug: string,
+    cursor?: string,
+    limit: number = 20,
+  ) {
     const category = await this.prisma.category.findUnique({
       where: { slug: categorySlug },
     });
@@ -98,84 +143,97 @@ export class NewsService {
     return this.getNews(cursor, limit, undefined, query);
   }
 
-  // Fetch and cache news from external API
   async fetchAndCacheNews(category?: string) {
-    try {
-      interface NewsApiParams {
-        apiKey: string;
-        pageSize: number;
-        country: string;
-        category?: string;
-      }
+    if (!this.naverClientId || !this.naverClientSecret) {
+      this.logger.warn(
+        'NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is not configured',
+      );
+      return 0;
+    }
 
-      const params: NewsApiParams = {
-        apiKey: this.newsApiKey,
-        pageSize: 100,
-        country: 'kr', // 한국 뉴스
+    const normalizedCategory = (category || 'general').toLowerCase();
+    const searchQuery =
+      this.categoryQueryMap[normalizedCategory] ||
+      `${normalizedCategory} 한국 뉴스`;
+
+    try {
+      const params: NaverNewsApiParams = {
+        query: searchQuery,
+        display: 100,
+        start: 1,
+        sort: 'date',
       };
 
-      if (category) {
-        params.category = category;
-      } else {
-        params.category = 'general';
-      }
+      const response = await axios.get<NaverNewsApiResponse>(
+        this.naverNewsApiUrl,
+        {
+          params,
+          headers: {
+            'X-Naver-Client-Id': this.naverClientId,
+            'X-Naver-Client-Secret': this.naverClientSecret,
+          },
+        },
+      );
 
-      const response = await axios.get(`${this.newsApiUrl}/top-headlines`, {
-        params,
+      const articles: NaverNewsItem[] = Array.isArray(response.data.items)
+        ? response.data.items
+        : [];
+
+      const categoryRecord = await this.prisma.category.upsert({
+        where: { slug: normalizedCategory },
+        update: {},
+        create: {
+          name:
+            normalizedCategory.charAt(0).toUpperCase() +
+            normalizedCategory.slice(1),
+          slug: normalizedCategory,
+        },
       });
 
-      if (response.data.status === 'ok') {
-        const articles = response.data.articles;
+      let savedCount = 0;
+      for (const article of articles) {
+        const url = article.originallink || article.link;
+        if (!url) continue;
 
-        // Find or create category
-        let categoryRecord: { id: string } | null = null;
-        if (category) {
-          categoryRecord = await this.prisma.category.upsert({
-            where: { slug: category },
-            update: {},
-            create: {
-              name: category.charAt(0).toUpperCase() + category.slice(1),
-              slug: category,
-            },
-          });
-        }
+        const publishedAt = this.parsePublishedDate(article.pubDate);
+        const title = this.normalizeText(article.title);
+        const description = this.normalizeText(article.description);
+        const source = this.extractSourceName(url);
 
-        // Cache articles to database
-        for (const article of articles) {
-          if (!article.url) continue;
+        await this.prisma.news.upsert({
+          where: { url },
+          update: {
+            title,
+            description,
+            content: description,
+            urlToImage: null,
+            publishedAt,
+            source,
+            author: null,
+            categoryId: categoryRecord.id,
+          },
+          create: {
+            title,
+            description,
+            content: description,
+            url,
+            urlToImage: null,
+            publishedAt,
+            source,
+            author: null,
+            categoryId: categoryRecord.id,
+          },
+        });
 
-          await this.prisma.news.upsert({
-            where: { url: article.url },
-            update: {
-              title: article.title,
-              description: article.description,
-              content: article.content,
-              urlToImage: article.urlToImage,
-              publishedAt: new Date(article.publishedAt),
-              source: article.source?.name || 'Unknown',
-              author: article.author,
-            },
-            create: {
-              title: article.title,
-              description: article.description,
-              content: article.content,
-              url: article.url,
-              urlToImage: article.urlToImage,
-              publishedAt: new Date(article.publishedAt),
-              source: article.source?.name || 'Unknown',
-              author: article.author,
-              categoryId: categoryRecord?.id,
-            },
-          });
-        }
-
-        this.logger.log(`Cached ${articles.length} articles for category: ${category || 'general'}`);
-        return articles.length;
+        savedCount += 1;
       }
 
-      return 0;
-    } catch (error) {
-      this.logger.error('Error fetching news from API', error);
+      this.logger.log(
+        `Cached ${savedCount} articles for category: ${normalizedCategory} (query: ${searchQuery})`,
+      );
+      return savedCount;
+    } catch (error: unknown) {
+      this.logger.error('Error fetching news from Naver API', error);
       return 0;
     }
   }
@@ -184,5 +242,39 @@ export class NewsService {
     return this.prisma.category.findMany({
       orderBy: { name: 'asc' },
     });
+  }
+
+  private parsePublishedDate(pubDate?: string): Date {
+    if (!pubDate) {
+      return new Date();
+    }
+
+    const parsed = new Date(pubDate);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  private normalizeText(value?: string): string {
+    if (!value) return '';
+
+    const withoutTags = value.replace(/<[^>]*>/g, ' ');
+    return withoutTags
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#39;/g, "'")
+      .replace(/&#x2F;/g, '/')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private extractSourceName(url: string): string {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return 'Naver News';
+    }
   }
 }

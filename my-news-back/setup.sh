@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 # My News Backend - Quick Setup Script
 
@@ -14,7 +14,7 @@ if [ ! -f .env ]; then
     cp .env.example .env
     echo "✅ Created .env file"
     echo "⚠️  Please edit .env and add your API keys:"
-    echo "   - NEWS_API_KEY (get from https://newsapi.org/)"
+    echo "   - NAVER_CLIENT_ID / NAVER_CLIENT_SECRET (get from https://developers.naver.com/docs/serviceapi/search/news/news.md)"
     echo "   - Weather uses Open-Meteo (no API key required) https://open-meteo.com/"
     echo ""
     read -p "Press Enter to continue after updating .env file..."

@@ -58,7 +58,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordValid = await bcrypt.compare(loginDto.password, user.password);
+    const passwordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
 
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -109,30 +112,29 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email: string) {
-    const jwtSecret = this.configService.get<string>('JWT_SECRET') || 'default-secret';
-    const jwtRefreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') || 'default-refresh-secret';
-    const jwtExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') || '15m';
-    const jwtRefreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
+    const jwtSecret =
+      this.configService.get<string>('JWT_SECRET') || 'default-secret';
+    const jwtRefreshSecret =
+      this.configService.get<string>('JWT_REFRESH_SECRET') ||
+      'default-refresh-secret';
+    const jwtExpiresIn =
+      this.configService.get<string>('JWT_EXPIRES_IN') || '15m';
+    const jwtRefreshExpiresIn =
+      this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
 
     const payload = { sub: userId, email };
 
     // Note: Type assertions used due to @nestjs/jwt v11 strict typing with string expiresIn
     // The library supports string format like '15m' but TypeScript types don't reflect this
-    const accessToken = await this.jwtService.signAsync(
-      payload,
-      {
-        secret: jwtSecret,
-        expiresIn: jwtExpiresIn as any,
-      },
-    );
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: jwtSecret,
+      expiresIn: jwtExpiresIn as any,
+    });
 
-    const refreshToken = await this.jwtService.signAsync(
-      payload,
-      {
-        secret: jwtRefreshSecret,
-        expiresIn: jwtRefreshExpiresIn as any,
-      },
-    );
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: jwtRefreshSecret,
+      expiresIn: jwtRefreshExpiresIn as any,
+    });
 
     return {
       accessToken,

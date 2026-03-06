@@ -17,10 +17,12 @@ import { WeatherModule } from './weather/weather.module';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 60 seconds
-      limit: 100, // 100 requests per ttl
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 60 seconds
+        limit: 100, // 100 requests per ttl
+      },
+    ]),
     PrismaModule,
     AuthModule,
     NewsModule,

@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 REM My News Backend - Quick Setup Script for Windows
 
 echo 🚀 My News Backend - Quick Setup
@@ -10,8 +10,8 @@ if not exist .env (
     echo ⚠️  No .env file found. Creating from .env.example...
     copy .env.example .env
     echo ✅ Created .env file
-    echo ⚠️  Please edit .env and add your API keys:
-    echo    - NEWS_API_KEY (get from https://newsapi.org/)
+    echo ⚠️ Please edit .env and add your API keys:
+    echo    - NAVER_CLIENT_ID / NAVER_CLIENT_SECRET (get from https://developers.naver.com/docs/serviceapi/search/news/news.md)
     echo    - Weather uses Open-Meteo (no API key required) https://open-meteo.com/
     echo.
     pause
@@ -55,3 +55,4 @@ echo 📚 See README.md for API documentation
 echo 🧪 See API_TESTING.md for testing examples
 echo.
 pause
+

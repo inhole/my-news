@@ -27,7 +27,9 @@ export class WeatherService {
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {
-    this.openMeteoApiUrl = this.configService.get<string>('OPEN_METEO_API_URL') || 'https://api.open-meteo.com/v1';
+    this.openMeteoApiUrl =
+      this.configService.get<string>('OPEN_METEO_API_URL') ||
+      'https://api.open-meteo.com/v1';
   }
 
   async getWeather(lat: number, lon: number) {
@@ -47,7 +49,9 @@ export class WeatherService {
 
     // Return cached data if not expired
     if (cached && cached.expiresAt > new Date()) {
-      this.logger.log(`Cache hit for coordinates: ${roundedLat}, ${roundedLon}`);
+      this.logger.log(
+        `Cache hit for coordinates: ${roundedLat}, ${roundedLon}`,
+      );
       const cachedData = cached.data as any;
       const transformedWeather: Weather = {
         id: `${roundedLat}_${roundedLon}`,
@@ -70,12 +74,13 @@ export class WeatherService {
       // We request current weather + a small set of current variables.
       const response = await axios.get(`${this.openMeteoApiUrl}/forecast`, {
         params: {
-           latitude: roundedLat,
-           longitude: roundedLon,
-           current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m',
-           timezone: 'auto',
-         },
-       });
+          latitude: roundedLat,
+          longitude: roundedLon,
+          current:
+            'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m',
+          timezone: 'auto',
+        },
+      });
 
       const weatherData = response.data;
 
@@ -117,7 +122,9 @@ export class WeatherService {
         },
       });
 
-      this.logger.log(`Fetched and cached weather for: ${roundedLat}, ${roundedLon}`);
+      this.logger.log(
+        `Fetched and cached weather for: ${roundedLat}, ${roundedLon}`,
+      );
       return transformedWeather;
     } catch (error) {
       this.logger.error('Error fetching weather data (Open-Meteo)', error);

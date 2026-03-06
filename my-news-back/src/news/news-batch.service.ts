@@ -34,11 +34,16 @@ export class NewsBatchService {
         // Add delay between API calls to avoid rate limiting
         await this.delay(2000);
       } catch (error) {
-        this.logger.error(`Failed to fetch news for category: ${category}`, error);
+        this.logger.error(
+          `Failed to fetch news for category: ${category}`,
+          error,
+        );
       }
     }
 
-    this.logger.log(`Batch job completed. Total articles fetched: ${totalFetched}`);
+    this.logger.log(
+      `Batch job completed. Total articles fetched: ${totalFetched}`,
+    );
   }
 
   // Run at 6 AM and 6 PM every day for major updates
@@ -51,7 +56,9 @@ export class NewsBatchService {
     for (const category of priorityCategories) {
       try {
         const count = await this.newsService.fetchAndCacheNews(category);
-        this.logger.log(`Major update: Fetched ${count} articles for ${category}`);
+        this.logger.log(
+          `Major update: Fetched ${count} articles for ${category}`,
+        );
         await this.delay(2000);
       } catch (error) {
         this.logger.error(`Major update failed for ${category}`, error);
@@ -61,7 +68,9 @@ export class NewsBatchService {
 
   // Manual trigger method (can be called via API endpoint)
   async manualFetchNews(category?: string) {
-    this.logger.log(`Manual fetch triggered for category: ${category || 'all'}`);
+    this.logger.log(
+      `Manual fetch triggered for category: ${category || 'all'}`,
+    );
 
     if (category) {
       return await this.newsService.fetchAndCacheNews(category);
@@ -71,6 +80,6 @@ export class NewsBatchService {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
