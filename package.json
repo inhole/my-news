@@ -1,0 +1,16 @@
+{
+  "name": "my-news",
+  "private": true,
+  "workspaces": [
+    "my-news-front",
+    "my-news-back"
+  ],
+  "scripts": {
+    "install:all": "npm install --workspaces",
+    "dev:front": "npm run dev --workspace my-news-front",
+    "dev:back": "npm run start:dev --workspace my-news-back",
+    "build": "npm run build --workspace my-news-front && npm run build --workspace my-news-back",
+    "lint": "npm run lint --workspace my-news-front && npm run lint --workspace my-news-back",
+    "test": "npm run test --workspace my-news-back"
+  }
+}
