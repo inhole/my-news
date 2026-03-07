@@ -1,8 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import { NEWS_CATEGORIES } from '../src/news/news-categories';
 
 const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL is required to run prisma seed.');
+}
+
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -10,22 +16,18 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('Start seeding...');
 
-  // Create categories
-  const categories = [
-    { name: 'General', slug: 'general', description: 'General news' },
-    { name: 'Business', slug: 'business', description: 'Business news' },
-    { name: 'Technology', slug: 'technology', description: 'Technology news' },
-    { name: 'Entertainment', slug: 'entertainment', description: 'Entertainment news' },
-    { name: 'Sports', slug: 'sports', description: 'Sports news' },
-    { name: 'Science', slug: 'science', description: 'Science news' },
-    { name: 'Health', slug: 'health', description: 'Health news' },
-  ];
-
-  for (const category of categories) {
+  for (const category of NEWS_CATEGORIES) {
     await prisma.category.upsert({
       where: { slug: category.slug },
-      update: {},
-      create: category,
+      update: {
+        name: category.name,
+        description: category.description,
+      },
+      create: {
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+      },
     });
     console.log(`Created/Updated category: ${category.name}`);
   }
@@ -40,4 +42,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

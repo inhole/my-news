@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { NewsService } from './news.service';
+import { NEWS_CATEGORY_SLUGS } from './news-categories';
 
 @Injectable()
 export class NewsBatchService {
@@ -13,15 +14,7 @@ export class NewsBatchService {
   async fetchAllCategoryNews() {
     this.logger.log('Starting scheduled news fetch batch job...');
 
-    const categories = [
-      'general',
-      'business',
-      'entertainment',
-      'health',
-      'science',
-      'sports',
-      'technology',
-    ];
+    const categories = NEWS_CATEGORY_SLUGS;
 
     let totalFetched = 0;
 

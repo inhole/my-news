@@ -1,16 +1,16 @@
-import { Controller, Get, Param, Query, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import {
-  ApiTags,
+  ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiBearerAuth,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { NewsService } from './news.service';
-import { NewsBatchService } from './news-batch.service';
-import { GetNewsDto } from './dto/get-news.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetNewsDto } from './dto/get-news.dto';
+import { NewsBatchService } from './news-batch.service';
+import { NewsService } from './news.service';
 
 @ApiTags('news')
 @Controller('news')
@@ -23,7 +23,7 @@ export class NewsController {
   @Get()
   @ApiOperation({
     summary: '뉴스 목록 조회',
-    description: '뉴스 목록을 페이지네이션과 함께 조회합니다.',
+    description: '뉴스 목록을 페이지네이션, 카테고리, 검색어 조건으로 조회합니다.',
   })
   @ApiResponse({ status: 200, description: '뉴스 목록 조회 성공' })
   async getNews(@Query() query: GetNewsDto) {
@@ -38,7 +38,7 @@ export class NewsController {
   @Get('categories')
   @ApiOperation({
     summary: '카테고리 목록 조회',
-    description: '사용 가능한 모든 뉴스 카테고리 목록을 조회합니다.',
+    description: '사용 가능한 뉴스 카테고리 목록을 조회합니다.',
   })
   @ApiResponse({ status: 200, description: '카테고리 목록 조회 성공' })
   async getCategories() {
@@ -48,9 +48,9 @@ export class NewsController {
   @Get('search')
   @ApiOperation({
     summary: '뉴스 검색',
-    description: '키워드로 뉴스를 검색합니다.',
+    description: '검색어로 뉴스 목록을 조회합니다.',
   })
-  @ApiResponse({ status: 200, description: '검색 결과 조회 성공' })
+  @ApiResponse({ status: 200, description: '뉴스 검색 성공' })
   async searchNews(@Query() query: GetNewsDto) {
     return this.newsService.searchNews(
       query.search || '',
@@ -59,32 +59,10 @@ export class NewsController {
     );
   }
 
-  @Get('category/:category')
-  @ApiOperation({
-    summary: '카테고리별 뉴스 조회',
-    description: '특정 카테고리의 뉴스 목록을 조회합니다.',
-  })
-  @ApiParam({
-    name: 'category',
-    description: '카테고리 slug',
-    example: 'technology',
-  })
-  @ApiResponse({ status: 200, description: '카테고리별 뉴스 조회 성공' })
-  async getNewsByCategory(
-    @Param('category') category: string,
-    @Query() query: GetNewsDto,
-  ) {
-    return this.newsService.getNewsByCategory(
-      category,
-      query.cursor,
-      query.limit,
-    );
-  }
-
   @Get(':id')
   @ApiOperation({
     summary: '뉴스 상세 조회',
-    description: 'ID로 특정 뉴스의 상세 정보를 조회합니다.',
+    description: '뉴스 ID로 상세 정보를 조회합니다.',
   })
   @ApiParam({
     name: 'id',
@@ -101,17 +79,17 @@ export class NewsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
-    summary: '외부 API에서 뉴스 가져오기 (수동 트리거)',
+    summary: '네이버 뉴스 수집 실행',
     description:
-      '외부 뉴스 API에서 뉴스를 수동으로 가져와 캐시합니다. 카테고리를 지정하지 않으면 모든 카테고리를 가져옵니다. (인증 필요)',
+      '네이버 뉴스 API에서 뉴스를 수집해 저장합니다. 카테고리를 지정하지 않으면 전체 카테고리를 순차 실행합니다.',
   })
   @ApiQuery({
     name: 'category',
     required: false,
-    description: '가져올 뉴스의 카테고리 (선택사항)',
+    description: '수집할 카테고리 slug',
     example: 'technology',
   })
-  @ApiResponse({ status: 200, description: '뉴스 가져오기 성공' })
+  @ApiResponse({ status: 200, description: '뉴스 수집 요청 성공' })
   @ApiResponse({ status: 401, description: '인증 실패' })
   async fetchNews(@Query('category') category?: string) {
     if (category) {
@@ -121,12 +99,12 @@ export class NewsController {
         count,
         category,
       };
-    } else {
-      await this.newsBatchService.manualFetchNews();
-      return {
-        message: 'Batch job triggered for all categories',
-        note: 'This process runs in the background. Check logs for progress.',
-      };
     }
+
+    await this.newsBatchService.manualFetchNews();
+    return {
+      message: 'Batch job triggered for all categories',
+      note: 'This process runs in the background. Check logs for progress.',
+    };
   }
 }

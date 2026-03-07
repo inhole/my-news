@@ -11,16 +11,10 @@
 
 1. `my-news-back/.env.example`을 `my-news-back/.env`로 복사합니다.
 2. `.env`에서 `DATABASE_URL`을 Neon Direct URL로 교체합니다.
+3. `.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`을 입력합니다.
 
 ```env
 DATABASE_URL=postgresql://[NEON_USER]:[NEON_PASSWORD]@[NEON_DIRECT_HOST]/[DB_NAME]?sslmode=require&channel_binding=require
-```
-
-3. 네이버 뉴스 API 키를 입력합니다.
-
-```env
-NAVER_CLIENT_ID=...
-NAVER_CLIENT_SECRET=...
 ```
 
 ## 3. DB 초기화 및 실행

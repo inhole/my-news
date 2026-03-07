@@ -1,10 +1,10 @@
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class GetNewsDto {
   @ApiPropertyOptional({
-    description: '페이지네이션 커서 (이전 응답의 nextCursor 값)',
+    description: '페이지네이션 커서 값',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsOptional()
@@ -12,7 +12,7 @@ export class GetNewsDto {
   cursor?: string;
 
   @ApiPropertyOptional({
-    description: '페이지당 항목 수',
+    description: '조회할 뉴스 개수',
     example: 20,
     default: 20,
     minimum: 1,
@@ -24,7 +24,7 @@ export class GetNewsDto {
   limit?: number = 20;
 
   @ApiPropertyOptional({
-    description: '카테고리 필터 (slug)',
+    description: '카테고리 slug',
     example: 'technology',
   })
   @IsOptional()
@@ -32,7 +32,7 @@ export class GetNewsDto {
   category?: string;
 
   @ApiPropertyOptional({
-    description: '검색 키워드',
+    description: '검색어',
     example: 'AI',
   })
   @IsOptional()

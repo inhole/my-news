@@ -2,6 +2,7 @@
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import axios from 'axios';
+import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 
 type NaverSort = 'sim' | 'date';
 
@@ -30,15 +31,6 @@ export class NewsService {
   private readonly naverClientId: string;
   private readonly naverClientSecret: string;
   private readonly naverNewsApiUrl: string;
-  private readonly categoryQueryMap: Record<string, string> = {
-    general: '한국 주요 뉴스',
-    business: '한국 경제',
-    technology: '한국 IT 기술',
-    entertainment: '한국 연예',
-    sports: '한국 스포츠',
-    science: '한국 과학',
-    health: '한국 건강 의학',
-  };
 
   constructor(
     private prisma: PrismaService,
@@ -119,26 +111,6 @@ export class NewsService {
     });
   }
 
-  async getNewsByCategory(
-    categorySlug: string,
-    cursor?: string,
-    limit: number = 20,
-  ) {
-    const category = await this.prisma.category.findUnique({
-      where: { slug: categorySlug },
-    });
-
-    if (!category) {
-      return {
-        items: [],
-        nextCursor: null,
-        hasMore: false,
-      };
-    }
-
-    return this.getNews(cursor, limit, categorySlug);
-  }
-
   async searchNews(query: string, cursor?: string, limit: number = 20) {
     return this.getNews(cursor, limit, undefined, query);
   }
@@ -152,9 +124,9 @@ export class NewsService {
     }
 
     const normalizedCategory = (category || 'general').toLowerCase();
+    const categoryDefinition = NEWS_CATEGORY_MAP[normalizedCategory];
     const searchQuery =
-      this.categoryQueryMap[normalizedCategory] ||
-      `${normalizedCategory} 한국 뉴스`;
+      categoryDefinition?.searchQuery || `${normalizedCategory} 한국 뉴스`;
 
     try {
       const params: NaverNewsApiParams = {
@@ -181,12 +153,16 @@ export class NewsService {
 
       const categoryRecord = await this.prisma.category.upsert({
         where: { slug: normalizedCategory },
-        update: {},
+        update: categoryDefinition
+          ? {
+              name: categoryDefinition.name,
+              description: categoryDefinition.description,
+            }
+          : {},
         create: {
-          name:
-            normalizedCategory.charAt(0).toUpperCase() +
-            normalizedCategory.slice(1),
+          name: categoryDefinition?.name || normalizedCategory,
           slug: normalizedCategory,
+          description: categoryDefinition?.description,
         },
       });
 
@@ -239,8 +215,15 @@ export class NewsService {
   }
 
   async getCategories() {
-    return this.prisma.category.findMany({
-      orderBy: { name: 'asc' },
+    const categories = await this.prisma.category.findMany();
+    const sortOrder = new Map(
+      NEWS_CATEGORY_SLUGS.map((slug, index) => [slug, index]),
+    );
+
+    return categories.sort((a, b) => {
+      const aOrder = sortOrder.get(a.slug) ?? Number.MAX_SAFE_INTEGER;
+      const bOrder = sortOrder.get(b.slug) ?? Number.MAX_SAFE_INTEGER;
+      return aOrder - bOrder || a.name.localeCompare(b.name, 'ko');
     });
   }
 
