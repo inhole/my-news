@@ -42,12 +42,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[520px] px-1 py-4">
-      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[var(--line)] sm:p-8">
+    <div className="mx-auto w-full max-w-[560px] py-6">
+      <section className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[var(--line)] sm:p-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#111827]">로그인</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9ca3af]">MY NEWS</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em] text-[#111827]">로그인</h1>
           <p className="mt-2 text-sm leading-6 text-[#6b7280]">
-            저장한 기사와 개인화된 뉴스를 확인하려면 로그인하세요.
+            계정에 로그인하고 저장한 기사와 맞춤 뉴스를 확인하세요.
           </p>
         </div>
 
@@ -68,7 +69,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="your@email.com"
-                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--primary)] focus:bg-white"
+                className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--primary)] focus:bg-white"
                 disabled={login.isPending}
               />
             </div>
@@ -83,7 +84,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="비밀번호를 입력하세요"
-                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--primary)] focus:bg-white"
+                className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--primary)] focus:bg-white"
                 disabled={login.isPending}
               />
             </div>
@@ -92,7 +93,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={login.isPending}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-60"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-60"
           >
             {login.isPending ? (
               <>

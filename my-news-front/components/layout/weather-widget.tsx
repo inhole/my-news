@@ -42,6 +42,22 @@ function getWeatherIcon(code: number) {
   return <Wind className="h-8 w-8 text-[#94a3b8]" />;
 }
 
+function formatHourLabel(time: string): string {
+  const date = new Date(time);
+  const hours = date.getHours();
+  return `${hours.toString().padStart(2, '0')}시`;
+}
+
+function formatDayLabel(dateString: string, index: number): string {
+  if (index === 0) {
+    return '오늘';
+  }
+
+  const date = new Date(dateString);
+  const week = ['일', '월', '화', '수', '목', '금', '토'];
+  return week[date.getDay()];
+}
+
 export function WeatherWidget() {
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [geoError, setGeoError] = useState(() =>
@@ -87,19 +103,50 @@ export function WeatherWidget() {
   }
 
   return (
-    <section className="rounded-3xl bg-[linear-gradient(135deg,#3182f6_0%,#4f9cff_100%)] p-5 text-white shadow-[0_10px_30px_rgba(49,130,246,0.35)]">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-white/80">현재 날씨</p>
-          <p className="mt-2 text-4xl font-bold">{Math.round(weather.temperature)}°</p>
-          <p className="mt-1 text-sm text-white/90">{getWeatherDescription(weather.weatherCode)}</p>
+    <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+      <div className="bg-[linear-gradient(135deg,#3182f6_0%,#4f9cff_100%)] px-5 py-5 text-white">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-white/80">현재 날씨</p>
+            <p className="mt-1 text-4xl font-bold">{Math.round(weather.temperature)}°</p>
+            <p className="mt-1 text-sm text-white/90">{getWeatherDescription(weather.weatherCode)}</p>
+          </div>
+          <div className="rounded-2xl bg-white/20 p-2">{getWeatherIcon(weather.weatherCode)}</div>
         </div>
-        <div className="rounded-2xl bg-white/20 p-2">{getWeatherIcon(weather.weatherCode)}</div>
       </div>
-      <div className="mt-5 grid grid-cols-3 gap-2 text-xs text-white/90">
-        <p>습도 {weather.humidity}%</p>
-        <p>풍속 {Math.round(weather.windSpeed)}km/h</p>
-        <p>{weather.latitude.toFixed(2)}, {weather.longitude.toFixed(2)}</p>
+
+      <div className="space-y-4 p-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9ca3af]">시간별</p>
+          <div className="scrollbar-hide mt-2 flex gap-2 overflow-x-auto pb-1">
+            {weather.hourly.map((hour) => (
+              <div
+                key={hour.time}
+                className="min-w-[68px] rounded-2xl bg-[#f3f4f6] px-3 py-2 text-center"
+              >
+                <p className="text-[11px] font-medium text-[#6b7280]">{formatHourLabel(hour.time)}</p>
+                <p className="mt-1 text-sm font-semibold text-[#111827]">{Math.round(hour.temperature)}°</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9ca3af]">주간 예보</p>
+          <div className="mt-2 space-y-2">
+            {weather.daily.slice(0, 7).map((day, index) => (
+              <div key={day.date} className="flex items-center justify-between rounded-xl bg-[#f9fafb] px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-9 text-sm font-semibold text-[#374151]">{formatDayLabel(day.date, index)}</span>
+                  <span className="text-xs text-[#9ca3af]">{getWeatherDescription(day.weatherCode)}</span>
+                </div>
+                <p className="text-sm font-medium text-[#111827]">
+                  {Math.round(day.tempMax)}° / {Math.round(day.tempMin)}°
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

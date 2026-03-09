@@ -1,4 +1,16 @@
-// Weather
+export interface WeatherHourlyPoint {
+  time: string;
+  temperature: number;
+  weatherCode: number;
+}
+
+export interface WeatherDailyPoint {
+  date: string;
+  tempMax: number;
+  tempMin: number;
+  weatherCode: number;
+}
+
 export interface Weather {
   id: string;
   latitude: number;
@@ -10,4 +22,6 @@ export interface Weather {
   humidity: number;
   timestamp: string;
   expiresAt: string;
+  hourly: WeatherHourlyPoint[];
+  daily: WeatherDailyPoint[];
 }
