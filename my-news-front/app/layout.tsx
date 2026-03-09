@@ -5,7 +5,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'My News - 모바일 뉴스',
-  description: '카테고리별 뉴스와 날씨를 반응형 레이아웃으로 확인하는 뉴스 앱',
+  description: '토스 스타일 반응형 뉴스 앱',
 };
 
 export default function RootLayout({
@@ -17,14 +17,12 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <QueryProvider>
-          <div className="relative min-h-[100dvh] bg-[linear-gradient(180deg,#edf2f8_0%,#d6e0ec_22%,#c3cfdb_100%)]">
+          <div className="relative min-h-[100dvh]">
             <main
               id="app-scroll-container"
-              className="h-[100dvh] overflow-y-auto overflow-x-hidden pb-28"
+              className="mx-auto h-[100dvh] w-full max-w-[960px] overflow-y-auto px-4 pb-28 pt-3 sm:px-6"
             >
-              <div className="mx-auto min-h-full w-full max-w-[1280px]">
-                {children}
-              </div>
+              {children}
             </main>
             <BottomNav />
           </div>

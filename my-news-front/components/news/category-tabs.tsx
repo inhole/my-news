@@ -18,9 +18,9 @@ export function CategoryTabs({
 
   if (isLoading) {
     return (
-      <div className="scrollbar-hide flex items-center gap-6 overflow-x-auto px-4 py-4 sm:px-6 lg:px-8">
+      <div className="scrollbar-hide flex items-center gap-3 overflow-x-auto px-2 py-3 sm:px-4">
         {[...Array(6)].map((_, index) => (
-          <div key={index} className="h-7 w-16 animate-pulse rounded-full bg-[#ebe5dc]" />
+          <div key={index} className="h-9 w-16 animate-pulse rounded-full bg-[#edf1f5]" />
         ))}
       </div>
     );
@@ -29,7 +29,7 @@ export function CategoryTabs({
   const items = [{ id: 'all', slug: '', name: defaultLabel }, ...(categories ?? [])];
 
   return (
-    <div className="scrollbar-hide flex items-center gap-6 overflow-x-auto px-4 sm:px-6 lg:px-8">
+    <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto px-2 py-3 sm:px-4">
       {items.map((item) => {
         const isActive = item.slug === (selected ?? '');
 
@@ -38,10 +38,10 @@ export function CategoryTabs({
             key={item.id}
             type="button"
             onClick={() => onChange(item.slug)}
-            className={`shrink-0 border-b-[3px] pb-4 pt-5 text-sm font-bold tracking-[-0.02em] transition-colors sm:text-base ${
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
               isActive
-                ? 'border-[#ef7d2a] text-[#ef7d2a]'
-                : 'border-transparent text-[#374151]'
+                ? 'bg-[var(--primary)] text-white'
+                : 'bg-[#f3f4f6] text-[#4b5563] hover:bg-[#ebeff3]'
             }`}
           >
             {item.name}
@@ -52,9 +52,9 @@ export function CategoryTabs({
       <button
         type="button"
         aria-label="카테고리 더보기"
-        className="ml-auto shrink-0 pb-4 pt-5 text-[#a0a7b2]"
+        className="ml-1 shrink-0 rounded-full bg-[#f3f4f6] p-2 text-[#9ca3af]"
       >
-        <MoreHorizontal className="h-6 w-6" />
+        <MoreHorizontal className="h-5 w-5" />
       </button>
     </div>
   );

@@ -31,7 +31,6 @@ export default function NewsDetailPage() {
         return;
       }
 
-      console.error('북마크 추가 실패:', err);
       alert('북마크 추가에 실패했습니다.');
     }
   };
@@ -44,8 +43,8 @@ export default function NewsDetailPage() {
           text: news.description || news.title,
           url: window.location.href,
         });
-      } catch (err) {
-        console.error('공유 실패:', err);
+      } catch {
+        return;
       }
       return;
     }
@@ -69,22 +68,16 @@ export default function NewsDetailPage() {
 
   if (isError) {
     return (
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
-        <ErrorMessage
-          title="뉴스를 불러오지 못했습니다"
-          message={error?.message || '잠시 후 다시 시도해 주세요.'}
-          onRetry={() => refetch()}
-        />
-      </div>
+      <ErrorMessage
+        title="뉴스를 불러오지 못했습니다"
+        message={error?.message || '잠시 후 다시 시도해 주세요.'}
+        onRetry={() => refetch()}
+      />
     );
   }
 
   if (!news) {
-    return (
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
-        <ErrorMessage title="뉴스를 찾을 수 없습니다" />
-      </div>
-    );
+    return <ErrorMessage title="뉴스를 찾을 수 없습니다" />;
   }
 
   const bodyText = news.content?.trim() || news.description?.trim() || '';
@@ -94,90 +87,78 @@ export default function NewsDetailPage() {
     .filter(Boolean);
 
   return (
-    <div className="px-4 py-5 sm:px-6 lg:px-8">
-      <div className="rounded-[28px] border border-[#ddd6cd] bg-[#fbfaf7] shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#ebe5dc] bg-[#fbfaf7]/95 px-4 py-4 backdrop-blur sm:px-5">
+    <article className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#f1f5f9] bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 rounded-xl px-2 py-1 text-sm font-semibold text-[#374151] hover:bg-[#f3f4f6]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>뒤로</span>
+        </button>
+
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#4a5563]"
+            onClick={handleShare}
+            className="rounded-full bg-[#f3f4f6] p-2 text-[#4b5563] hover:bg-[#e5e7eb]"
+            title="공유하기"
           >
-            <ArrowLeft className="h-5 w-5" />
-            <span>뒤로</span>
+            <Share2 className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            onClick={handleBookmark}
+            disabled={addBookmark.isPending}
+            className="rounded-full bg-[#f3f4f6] p-2 text-[#4b5563] hover:bg-[#e5e7eb] disabled:opacity-50"
+            title="북마크"
+          >
+            <Bookmark className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleShare}
-              className="rounded-full bg-[#f1ede5] p-2 text-[#4a5563]"
-              title="공유하기"
-            >
-              <Share2 className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleBookmark}
-              disabled={addBookmark.isPending}
-              className="inline-flex items-center gap-2 rounded-full bg-[#2f3947] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              <Bookmark className="h-4 w-4" />
-              <span>{addBookmark.isPending ? '저장 중' : '북마크'}</span>
-            </button>
-          </div>
+      {news.imageUrl && (
+        <div className="relative h-[220px] w-full bg-[#e5edf8] sm:h-[320px]">
+          <Image src={news.imageUrl} alt={news.title} fill priority className="object-cover" />
+        </div>
+      )}
+
+      <div className="px-4 py-6 sm:px-6">
+        <span className="inline-flex rounded-full bg-[var(--primary-weak)] px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+          {news.category.name}
+        </span>
+
+        <h1 className="mt-3 text-2xl font-bold leading-9 tracking-[-0.02em] text-[#111827] sm:text-[2rem]">
+          {news.title}
+        </h1>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-[#f1f5f9] pb-4 text-xs text-[#6b7280]">
+          <span className="font-medium">{news.source}</span>
+          <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
+          <Clock className="h-3.5 w-3.5" />
+          <span>{formatDate(news.publishedAt)}</span>
         </div>
 
-        {news.imageUrl && (
-          <div className="relative h-[240px] w-full bg-[#d8ddd2] sm:h-[360px] lg:h-[460px]">
-            <Image
-              src={news.imageUrl}
-              alt={news.title}
-              fill
-              priority
-              className="object-cover"
-            />
-          </div>
-        )}
+        <div className="mt-5 space-y-4 text-[15px] leading-7 text-[#374151]">
+          {paragraphs.length > 0 ? (
+            paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
+          ) : (
+            <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
+          )}
+        </div>
 
-        <article className="px-4 py-6 sm:px-6 lg:px-8">
-          <span className="inline-flex rounded-full bg-[#f8ebe0] px-3 py-1 text-xs font-semibold text-[#ef7d2a]">
-            {news.category.name}
-          </span>
-
-          <h1 className="mt-4 text-[1.75rem] font-black leading-[1.4] tracking-[-0.02em] text-[#202733] sm:text-[2.2rem]">
-            {news.title}
-          </h1>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-[#ebe5dc] pb-5 text-sm text-[#7b8390]">
-            <span className="font-semibold text-[#4a5563]">{news.source}</span>
-            <span className="h-1 w-1 rounded-full bg-[#c5ccd6]" />
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span>{formatDate(news.publishedAt)}</span>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-5 text-base leading-8 break-words text-[#3e4652] sm:text-[1.02rem]">
-            {paragraphs.length > 0 ? (
-              paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
-            ) : (
-              <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
-            )}
-          </div>
-
-          <div className="mt-8 border-t border-[#ebe5dc] pt-6">
-            <a
-              href={news.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-[18px] bg-[#ef7d2a] px-5 py-3 text-base font-semibold text-white"
-            >
-              <span>원문 보기</span>
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </div>
-        </article>
+        <a
+          href={news.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
+        >
+          <span>원문 보기</span>
+          <ExternalLink className="h-4 w-4" />
+        </a>
       </div>
-    </div>
+    </article>
   );
 }

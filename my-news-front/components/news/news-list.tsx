@@ -46,7 +46,7 @@ export function NewsList({ category, search }: NewsListProps) {
 
   if (isLoading) {
     return (
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-3 py-1 lg:grid-cols-2">
         {[...Array(6)].map((_, index) => (
           <LoadingCard key={index} />
         ))}
@@ -71,27 +71,25 @@ export function NewsList({ category, search }: NewsListProps) {
       <EmptyState
         title="뉴스가 없습니다"
         message="아직 등록된 뉴스가 없습니다."
-        icon={<Newspaper className="mb-4 h-12 w-12 text-[#98a0ab]" />}
+        icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
       />
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-5 lg:grid-cols-2">
+    <div className="space-y-4 py-1">
+      <div className="grid gap-3 lg:grid-cols-2">
         {allNews.map((news) => (
           <NewsCard key={news.id} news={news} />
         ))}
       </div>
 
-      <div ref={observerRef} className="py-6">
+      <div ref={observerRef} className="py-4">
         {isFetchingNextPage && <LoadingSpinner />}
       </div>
 
       {!hasNextPage && allNews.length > 0 && (
-        <p className="py-4 text-center text-sm text-[#7b8390]">
-          모든 뉴스를 확인했습니다
-        </p>
+        <p className="py-2 text-center text-xs text-[#9ca3af]">모든 뉴스를 확인했습니다</p>
       )}
     </div>
   );

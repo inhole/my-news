@@ -1,7 +1,7 @@
 'use client';
 
 import type { AxiosError } from 'axios';
-import { useState, FormEvent } from 'react';
+import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Lock, LogIn, Mail } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -42,53 +42,48 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="px-5 py-8">
-      <div className="rounded-[28px] border border-[#ddd6cd] bg-[#fbfaf7] p-7 shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#eef1f6] text-[#2f3947]">
-            <LogIn className="h-8 w-8" />
-          </div>
-          <h1 className="text-[1.9rem] font-black tracking-[-0.05em] text-[#2f3947]">
-            로그인
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-[#697280]">
-            My News에서 저장한 기사와 개인화된 뉴스를 이어서 확인하세요.
+    <div className="mx-auto w-full max-w-[520px] px-1 py-4">
+      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[var(--line)] sm:p-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-[#111827]">로그인</h1>
+          <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+            저장한 기사와 개인화된 뉴스를 확인하려면 로그인하세요.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 flex items-start gap-3 rounded-[18px] border border-red-200 bg-red-50 px-4 py-4">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
-            <p className="text-sm leading-6 text-red-700">{error}</p>
+          <div className="mb-5 flex items-start gap-2 rounded-2xl bg-[#fef2f2] px-4 py-3 text-sm text-[#b91c1c]">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-[#495463]">이메일</span>
+            <span className="mb-1.5 block text-sm font-medium text-[#4b5563]">이메일</span>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a0a8b4]" />
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
               <input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="your@email.com"
-                className="w-full rounded-[18px] border border-[#ddd6cd] bg-white py-3 pl-12 pr-4 text-[#202733] outline-none transition focus:border-[#ef7d2a]"
+                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--primary)] focus:bg-white"
                 disabled={login.isPending}
               />
             </div>
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-[#495463]">비밀번호</span>
+            <span className="mb-1.5 block text-sm font-medium text-[#4b5563]">비밀번호</span>
             <div className="relative">
-              <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a0a8b4]" />
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="비밀번호를 입력하세요"
-                className="w-full rounded-[18px] border border-[#ddd6cd] bg-white py-3 pl-12 pr-4 text-[#202733] outline-none transition focus:border-[#ef7d2a]"
+                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--primary)] focus:bg-white"
                 disabled={login.isPending}
               />
             </div>
@@ -97,7 +92,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={login.isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-[18px] bg-[#2f3947] px-4 py-3 text-base font-semibold text-white transition hover:bg-[#252d39] disabled:opacity-60"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-60"
           >
             {login.isPending ? (
               <>
@@ -106,17 +101,13 @@ export default function LoginPage() {
               </>
             ) : (
               <>
-                <LogIn className="h-5 w-5" />
+                <LogIn className="h-4 w-4" />
                 <span>로그인</span>
               </>
             )}
           </button>
         </form>
-
-        <div className="mt-6 rounded-[18px] bg-[#f3efe8] px-4 py-4 text-center text-xs leading-6 text-[#697280]">
-          데모 계정: demo@example.com / password123
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
