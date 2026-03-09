@@ -15,21 +15,17 @@ export function NewsTopTabs({ selected, onChange }: NewsTopTabsProps) {
 
   useEffect(() => {
     const scrollContainer = document.getElementById('app-scroll-container');
-    if (!scrollContainer) {
-      return;
-    }
+    if (!scrollContainer) return;
 
     const handleScroll = () => {
-      if (tickingRef.current) {
-        return;
-      }
+      if (tickingRef.current) return;
       tickingRef.current = true;
 
       requestAnimationFrame(() => {
         const currentScrollTop = scrollContainer.scrollTop;
         const previousScrollTop = lastScrollTopRef.current;
 
-        if (currentScrollTop <= 12) {
+        if (currentScrollTop <= 16) {
           setVisible(true);
         } else if (currentScrollTop > previousScrollTop + 8) {
           setVisible(false);
@@ -53,7 +49,7 @@ export function NewsTopTabs({ selected, onChange }: NewsTopTabsProps) {
       }`}
     >
       <div className="border-b border-[var(--line)] bg-white/95 backdrop-blur">
-        <div className="mx-auto w-full max-w-[960px]">
+        <div className="mx-auto min-h-[var(--news-top-tabs-height)] w-full max-w-[980px]">
           <CategoryTabs selected={selected} onChange={onChange} />
         </div>
       </div>

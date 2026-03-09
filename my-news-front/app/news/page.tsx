@@ -8,7 +8,7 @@ export default function NewsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   return (
-    <div className="pt-[72px]">
+    <div className="pt-[calc(var(--news-top-tabs-height)+8px)]">
       <NewsTopTabs selected={selectedCategory} onChange={setSelectedCategory} />
       <NewsList category={selectedCategory || undefined} />
     </div>

@@ -28,18 +28,19 @@ function getWeatherDescription(code: number): string {
     96: '우박 동반 뇌우',
     99: '강한 우박 동반 뇌우',
   };
+
   return weatherCodes[code] || '날씨 정보 없음';
 }
 
-function getWeatherIcon(code: number) {
-  if (code === 0 || code === 1) return <Sun className="h-8 w-8 text-[#f59e0b]" />;
-  if (code >= 51 && code <= 55) return <CloudDrizzle className="h-8 w-8 text-[#60a5fa]" />;
+function getWeatherIcon(code: number, className = 'h-6 w-6') {
+  if (code === 0 || code === 1) return <Sun className={`${className} text-[#f59e0b]`} />;
+  if (code >= 51 && code <= 55) return <CloudDrizzle className={`${className} text-[#60a5fa]`} />;
   if ((code >= 61 && code <= 82) || code >= 95) {
-    return <CloudRain className="h-8 w-8 text-[#3b82f6]" />;
+    return <CloudRain className={`${className} text-[#3b82f6]`} />;
   }
-  if (code >= 71 && code <= 75) return <CloudSnow className="h-8 w-8 text-[#93c5fd]" />;
-  if (code >= 2 && code <= 3) return <Cloud className="h-8 w-8 text-[#9ca3af]" />;
-  return <Wind className="h-8 w-8 text-[#94a3b8]" />;
+  if (code >= 71 && code <= 75) return <CloudSnow className={`${className} text-[#93c5fd]`} />;
+  if (code >= 2 && code <= 3) return <Cloud className={`${className} text-[#9ca3af]`} />;
+  return <Wind className={`${className} text-[#94a3b8]`} />;
 }
 
 function formatHourLabel(time: string): string {
@@ -49,9 +50,7 @@ function formatHourLabel(time: string): string {
 }
 
 function formatDayLabel(dateString: string, index: number): string {
-  if (index === 0) {
-    return '오늘';
-  }
+  if (index === 0) return '오늘';
 
   const date = new Date(dateString);
   const week = ['일', '월', '화', '수', '목', '금', '토'];
@@ -73,10 +72,8 @@ export function WeatherWidget() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
-      },
-      () => setGeoError('위치 권한이 없어서 날씨 정보를 불러오지 못했습니다.'),
+      (position) => setCoords({ lat: position.coords.latitude, lon: position.coords.longitude }),
+      () => setGeoError('위치 권한이 없어 날씨 정보를 불러오지 못했습니다.'),
       { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 8000 }
     );
   }, [geoError]);
@@ -96,7 +93,7 @@ export function WeatherWidget() {
         <p className="text-sm font-semibold text-[#6b7280]">현재 날씨</p>
         <div className="mt-3 flex items-center gap-3">
           <Cloud className="h-6 w-6 animate-pulse text-[var(--primary)]" />
-          <p className="text-sm text-[#6b7280]">날씨를 불러오는 중입니다.</p>
+          <p className="text-sm text-[#6b7280]">날씨 정보를 불러오는 중입니다.</p>
         </div>
       </section>
     );
@@ -105,13 +102,13 @@ export function WeatherWidget() {
   return (
     <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
       <div className="bg-[linear-gradient(135deg,#3182f6_0%,#4f9cff_100%)] px-5 py-5 text-white">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-white/80">현재 날씨</p>
             <p className="mt-1 text-4xl font-bold">{Math.round(weather.temperature)}°</p>
             <p className="mt-1 text-sm text-white/90">{getWeatherDescription(weather.weatherCode)}</p>
           </div>
-          <div className="rounded-2xl bg-white/20 p-2">{getWeatherIcon(weather.weatherCode)}</div>
+          <div className="rounded-2xl bg-white/20 p-2">{getWeatherIcon(weather.weatherCode, 'h-8 w-8')}</div>
         </div>
       </div>
 
@@ -119,12 +116,10 @@ export function WeatherWidget() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9ca3af]">시간별</p>
           <div className="scrollbar-hide mt-2 flex gap-2 overflow-x-auto pb-1">
-            {weather.hourly.map((hour) => (
-              <div
-                key={hour.time}
-                className="min-w-[68px] rounded-2xl bg-[#f3f4f6] px-3 py-2 text-center"
-              >
+            {weather.hourly.slice(0, 12).map((hour) => (
+              <div key={hour.time} className="min-w-[72px] rounded-2xl bg-[#f3f4f6] px-3 py-2 text-center">
                 <p className="text-[11px] font-medium text-[#6b7280]">{formatHourLabel(hour.time)}</p>
+                <div className="mt-1 flex justify-center">{getWeatherIcon(hour.weatherCode, 'h-4 w-4')}</div>
                 <p className="mt-1 text-sm font-semibold text-[#111827]">{Math.round(hour.temperature)}°</p>
               </div>
             ))}
@@ -138,6 +133,7 @@ export function WeatherWidget() {
               <div key={day.date} className="flex items-center justify-between rounded-xl bg-[#f9fafb] px-3 py-2">
                 <div className="flex items-center gap-2">
                   <span className="w-9 text-sm font-semibold text-[#374151]">{formatDayLabel(day.date, index)}</span>
+                  {getWeatherIcon(day.weatherCode, 'h-4 w-4')}
                   <span className="text-xs text-[#9ca3af]">{getWeatherDescription(day.weatherCode)}</span>
                 </div>
                 <p className="text-sm font-medium text-[#111827]">

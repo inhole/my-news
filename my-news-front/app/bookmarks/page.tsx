@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 import { Bookmark as BookmarkIcon, Trash2 } from 'lucide-react';
-import { useInfiniteBookmarks, useRemoveBookmark } from '@/hooks/use-queries';
 import { NewsCard } from '@/components/news/news-card';
-import { LoadingCard, LoadingSpinner } from '@/components/ui/loading';
-import { ErrorMessage } from '@/components/ui/error';
 import { EmptyState } from '@/components/ui/empty';
+import { ErrorMessage } from '@/components/ui/error';
+import { LoadingCard, LoadingSpinner } from '@/components/ui/loading';
+import { useInfiniteBookmarks, useRemoveBookmark } from '@/hooks/use-queries';
 
 export default function BookmarksPage() {
   const {
@@ -23,7 +23,6 @@ export default function BookmarksPage() {
   const removeBookmark = useRemoveBookmark();
   const observerRef = useRef<HTMLDivElement>(null);
 
-  // 무한 스크롤
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -42,79 +41,74 @@ export default function BookmarksPage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleRemoveBookmark = async (bookmarkId: string) => {
-    if (confirm('북마크를 삭제하시겠습니까?')) {
-      try {
-        await removeBookmark.mutateAsync(bookmarkId);
-      } catch (error) {
-        console.error('북마크 삭제 실패:', error);
-        alert('북마크 삭제에 실패했습니다.');
-      }
+    if (!confirm('북마크를 해제할까요?')) return;
+
+    try {
+      await removeBookmark.mutateAsync(bookmarkId);
+    } catch {
+      alert('북마크 해제에 실패했습니다.');
     }
   };
 
-  return (
-    <div className="max-w-screen-xl mx-auto">
-      {/* 헤더 */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BookmarkIcon className="w-6 h-6 text-blue-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">북마크</h1>
-        </div>
-        <p className="text-gray-600">저장한 뉴스를 모아보세요</p>
-      </div>
+  const allBookmarks = data?.pages.flatMap((page) => page.items) ?? [];
 
-      {/* 북마크 목록 */}
+  return (
+    <div className="mx-auto w-full max-w-[840px] space-y-4">
+      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[var(--line)]">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-[var(--primary-weak)] p-2">
+            <BookmarkIcon className="h-5 w-5 text-[var(--primary)]" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-[#111827]">북마크</h1>
+            <p className="text-sm text-[#6b7280]">저장한 뉴스를 모아볼 수 있습니다.</p>
+          </div>
+        </div>
+      </section>
+
       {isLoading ? (
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {[...Array(6)].map((_, i) => (
             <LoadingCard key={i} />
           ))}
         </div>
       ) : isError ? (
         <ErrorMessage
-          title="북마크를 불러올 수 없습니다"
-          message={error?.message || '다시 시도해주세요.'}
+          title="북마크를 불러오지 못했습니다"
+          message={error?.message || '잠시 후 다시 시도해 주세요.'}
           onRetry={() => refetch()}
         />
+      ) : allBookmarks.length === 0 ? (
+        <EmptyState
+          title="저장한 뉴스가 없습니다"
+          message="관심 있는 뉴스를 북마크해 보세요."
+          icon={<BookmarkIcon className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+        />
       ) : (
-        <>
-          {data && data.pages[0].items.length === 0 ? (
-            <EmptyState
-              title="저장된 뉴스가 없습니다"
-              message="관심있는 뉴스를 저장해보세요"
-              icon={<BookmarkIcon className="w-12 h-12 text-gray-400 mb-4" />}
-            />
-          ) : (
-            <div className="space-y-6">
-              {data?.pages.flatMap((page) => page.items).map((bookmark) => (
-                <div key={bookmark.id} className="relative group">
-                  <NewsCard news={bookmark.news} />
-                  <button
-                    onClick={() => handleRemoveBookmark(bookmark.id)}
-                    disabled={removeBookmark.isPending}
-                    className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
-                    title="북마크 삭제"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-
-              {/* 무한 스크롤 트리거 */}
-              <div ref={observerRef} className="py-4">
-                {isFetchingNextPage && <LoadingSpinner />}
+        <div className="space-y-4">
+          <div className="grid gap-3 lg:grid-cols-2">
+            {allBookmarks.map((bookmark) => (
+              <div key={bookmark.id} className="group relative">
+                <NewsCard news={bookmark.news} />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveBookmark(bookmark.id)}
+                  disabled={removeBookmark.isPending}
+                  className="absolute bottom-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[var(--danger)] opacity-0 shadow-sm ring-1 ring-[#fee2e2] transition group-hover:opacity-100 disabled:opacity-50"
+                  title="북마크 해제"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
+            ))}
+          </div>
 
-              {!hasNextPage && data && data.pages[0].items.length > 0 && (
-                <p className="text-center text-sm text-gray-500 py-4">
-                  모든 북마크를 확인했습니다
-                </p>
-              )}
-            </div>
-          )}
-        </>
+          <div ref={observerRef} className="py-4">
+            {isFetchingNextPage && <LoadingSpinner />}
+          </div>
+
+          {!hasNextPage && <p className="py-2 text-center text-xs text-[#9ca3af]">모든 북마크를 확인했습니다</p>}
+        </div>
       )}
     </div>
   );

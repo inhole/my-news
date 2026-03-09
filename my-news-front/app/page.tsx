@@ -32,8 +32,8 @@ function FallbackThumb({ title }: { title: string }) {
 
 function HomeLoading() {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(280px,320px)_1fr]">
-      <div className="h-[200px] animate-pulse rounded-3xl bg-[#edf2f7]" />
+    <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+      <div className="h-[340px] animate-pulse rounded-3xl bg-[#edf2f7]" />
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[var(--line)]">
         {[...Array(5)].map((_, index) => (
           <div
@@ -59,11 +59,6 @@ export default function Home() {
 
   return (
     <div className="space-y-4">
-      <header className="px-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9ca3af]">My News</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-[-0.02em] text-[#111827]">오늘의 주요 뉴스</h1>
-      </header>
-
       {isLoading ? (
         <HomeLoading />
       ) : isError ? (
@@ -75,11 +70,11 @@ export default function Home() {
       ) : articles.length === 0 ? (
         <EmptyState
           title="표시할 뉴스가 없습니다"
-          message="뉴스가 수집되면 홈에서 최신 기사를 보여드립니다."
+          message="뉴스가 수집되면 여기에 최신 기사 5개를 보여드립니다."
           icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(280px,320px)_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
           <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
             <WeatherWidget />
           </div>

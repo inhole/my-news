@@ -28,9 +28,7 @@ export default function MyPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-[#6b7280]">마이페이지</p>
-            <h1 className="text-xl font-bold text-[#111827]">
-              {isLoggedIn ? '로그인된 계정' : '게스트 사용자'}
-            </h1>
+            <h1 className="text-xl font-bold text-[#111827]">{isLoggedIn ? '로그인된 계정' : '게스트 사용자'}</h1>
           </div>
         </div>
       </section>
@@ -42,7 +40,7 @@ export default function MyPage() {
         >
           <div className="flex items-center gap-3">
             <Bookmark className="h-5 w-5 text-[var(--primary)]" />
-            <span className="text-sm font-semibold text-[#111827]">저장한 기사</span>
+            <span className="text-sm font-semibold text-[#111827]">북마크 기사</span>
           </div>
           <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
         </Link>
@@ -63,10 +61,7 @@ export default function MyPage() {
             <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
           </button>
         ) : (
-          <Link
-            href="/login"
-            className="flex items-center justify-between px-5 py-4 transition hover:bg-[#f8fafc]"
-          >
+          <Link href="/login" className="flex items-center justify-between px-5 py-4 transition hover:bg-[#f8fafc]">
             <div className="flex items-center gap-3">
               <LogIn className="h-5 w-5 text-[#374151]" />
               <span className="text-sm font-semibold text-[#111827]">로그인</span>

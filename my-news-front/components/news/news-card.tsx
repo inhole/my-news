@@ -27,7 +27,7 @@ function formatRelativeTime(dateString: string) {
 
 function FallbackThumb({ title }: { title: string }) {
   return (
-    <div className="absolute inset-0 flex items-end bg-[linear-gradient(135deg,#dce9ff_0%,#bdd5ff_100%)] p-3">
+    <div className="absolute inset-0 flex items-end bg-[linear-gradient(135deg,#e0ecff_0%,#c6dcff_100%)] p-3">
       <p className="line-clamp-2 text-xs font-semibold leading-5 text-[#1f2937]">{title}</p>
     </div>
   );
@@ -42,8 +42,8 @@ export function NewsCard({ news }: NewsCardProps) {
 
     try {
       await addBookmark.mutateAsync(news.id);
-    } catch (error) {
-      console.error('북마크 추가 실패:', error);
+    } catch {
+      return;
     }
   };
 
@@ -55,7 +55,7 @@ export function NewsCard({ news }: NewsCardProps) {
             type="button"
             onClick={handleBookmarkClick}
             disabled={addBookmark.isPending}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f3f4f6] text-[#4b5563] transition hover:bg-[#e5e7eb] disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef] disabled:opacity-50"
             aria-label="북마크"
             title="북마크"
           >
@@ -67,7 +67,7 @@ export function NewsCard({ news }: NewsCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(event) => event.stopPropagation()}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f3f4f6] text-[#4b5563] transition hover:bg-[#e5e7eb]"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef]"
             aria-label="원문 보기"
             title="원문 보기"
           >
@@ -75,7 +75,7 @@ export function NewsCard({ news }: NewsCardProps) {
           </a>
         </div>
 
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#e5edf8] sm:h-24 sm:w-24">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#e8f1ff] sm:h-24 sm:w-24">
           {news.imageUrl ? (
             <Image src={news.imageUrl} alt={news.title} fill sizes="96px" className="object-cover" />
           ) : (
@@ -84,10 +84,10 @@ export function NewsCard({ news }: NewsCardProps) {
         </div>
 
         <div className="min-w-0 flex-1 pr-16">
-          <h3 className="line-clamp-2 text-[15px] font-semibold leading-6 text-[#111827]">{news.title}</h3>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
+          <h3 className="line-clamp-2 text-[15px] font-semibold leading-6 text-[var(--text)]">{news.title}</h3>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
             <span>{news.source}</span>
-            <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
+            <span className="h-1 w-1 rounded-full bg-[#d1d6db]" />
             <Clock className="h-3.5 w-3.5" />
             <span>{formatRelativeTime(news.publishedAt)}</span>
           </div>

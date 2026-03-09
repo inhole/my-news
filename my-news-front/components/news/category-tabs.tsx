@@ -18,9 +18,9 @@ export function CategoryTabs({
 
   if (isLoading) {
     return (
-      <div className="scrollbar-hide flex items-center gap-3 overflow-x-auto px-2 py-3 sm:px-4">
+      <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto px-2 py-3 sm:px-4">
         {[...Array(6)].map((_, index) => (
-          <div key={index} className="h-9 w-16 animate-pulse rounded-full bg-[#edf1f5]" />
+          <div key={index} className="h-9 w-16 animate-pulse rounded-full bg-[#eef2f6]" />
         ))}
       </div>
     );
@@ -41,7 +41,7 @@ export function CategoryTabs({
             className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
               isActive
                 ? 'bg-[var(--primary)] text-white'
-                : 'bg-[#f3f4f6] text-[#4b5563] hover:bg-[#ebeff3]'
+                : 'bg-[#f2f4f6] text-[#4e5968] hover:bg-[#e9ecef]'
             }`}
           >
             {item.name}
@@ -52,7 +52,7 @@ export function CategoryTabs({
       <button
         type="button"
         aria-label="카테고리 더보기"
-        className="ml-1 shrink-0 rounded-full bg-[#f3f4f6] p-2 text-[#9ca3af]"
+        className="ml-1 shrink-0 rounded-full bg-[#f2f4f6] p-2 text-[#8b95a1]"
       >
         <MoreHorizontal className="h-5 w-5" />
       </button>

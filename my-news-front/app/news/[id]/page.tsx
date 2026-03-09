@@ -87,7 +87,7 @@ export default function NewsDetailPage() {
     .filter(Boolean);
 
   return (
-    <article className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+    <article className="rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#f1f5f9] bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
         <button
           type="button"
@@ -130,7 +130,7 @@ export default function NewsDetailPage() {
           {news.category.name}
         </span>
 
-        <h1 className="mt-3 text-2xl font-bold leading-9 tracking-[-0.02em] text-[#111827] sm:text-[2rem]">
+        <h1 className="mt-3 break-words text-2xl font-bold leading-9 tracking-[-0.02em] text-[#111827] sm:text-[2rem]">
           {news.title}
         </h1>
 
@@ -143,7 +143,11 @@ export default function NewsDetailPage() {
 
         <div className="mt-5 space-y-4 text-[15px] leading-7 text-[#374151]">
           {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
+            paragraphs.map((paragraph, index) => (
+              <p key={index} className="break-words whitespace-pre-line">
+                {paragraph}
+              </p>
+            ))
           ) : (
             <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
           )}
