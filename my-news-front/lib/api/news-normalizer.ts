@@ -25,6 +25,30 @@ type ApiBookmark = Omit<Bookmark, 'news'> & {
   news: ApiNews;
 };
 
+function normalizeImageUrl(url?: string | null): string | null {
+  if (!url) {
+    return null;
+  }
+
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
+
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function normalizeNews(news: ApiNews): News {
   return {
     id: news.id,
@@ -32,7 +56,7 @@ export function normalizeNews(news: ApiNews): News {
     description: news.description ?? null,
     content: news.content ?? null,
     url: news.url,
-    imageUrl: news.imageUrl ?? news.urlToImage ?? null,
+    imageUrl: normalizeImageUrl(news.imageUrl ?? news.urlToImage),
     publishedAt: news.publishedAt,
     source: news.source,
     categoryId: news.categoryId,
