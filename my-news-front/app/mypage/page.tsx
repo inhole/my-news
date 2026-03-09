@@ -20,37 +20,31 @@ export default function MyPage() {
   };
 
   return (
-    <div className="space-y-5 px-5 py-5">
-      <section className="rounded-[28px] border border-[#ddd6cd] bg-[#fbfaf7] p-6 shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
-        <div className="mb-5 flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#eef1f6] text-[#2f3947]">
-            <UserRound className="h-8 w-8" />
+    <div className="mx-auto w-full max-w-[680px] space-y-4 py-1">
+      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[var(--line)]">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-weak)]">
+            <UserRound className="h-7 w-7 text-[var(--primary)]" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#8f96a1]">마이페이지</p>
-            <h1 className="text-[1.8rem] font-black tracking-[-0.05em] text-[#2f3947]">
+            <p className="text-sm font-medium text-[#6b7280]">마이페이지</p>
+            <h1 className="text-xl font-bold text-[#111827]">
               {isLoggedIn ? '로그인된 계정' : '게스트 사용자'}
             </h1>
           </div>
         </div>
-
-        <p className="text-base leading-7 text-[#65707d]">
-          {isLoggedIn
-            ? '저장한 기사와 관심 뉴스를 이곳에서 빠르게 관리할 수 있습니다.'
-            : '로그인하면 북마크와 개인화된 뉴스 기능을 바로 사용할 수 있습니다.'}
-        </p>
       </section>
 
-      <section className="overflow-hidden rounded-[24px] border border-[#ddd6cd] bg-[#fbfaf7] shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
+      <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
         <Link
           href="/bookmarks"
-          className="flex items-center justify-between border-b border-[#ebe5dc] px-5 py-4"
+          className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4 transition hover:bg-[#f8fafc]"
         >
           <div className="flex items-center gap-3">
-            <Bookmark className="h-5 w-5 text-[#ef7d2a]" />
-            <span className="text-base font-semibold text-[#2f3947]">저장한 기사</span>
+            <Bookmark className="h-5 w-5 text-[var(--primary)]" />
+            <span className="text-sm font-semibold text-[#111827]">저장한 기사</span>
           </div>
-          <ChevronRight className="h-5 w-5 text-[#b0b7c1]" />
+          <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
         </Link>
 
         {isLoggedIn ? (
@@ -58,23 +52,26 @@ export default function MyPage() {
             type="button"
             onClick={handleLogout}
             disabled={logout.isPending}
-            className="flex w-full items-center justify-between px-5 py-4 text-left"
+            className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-[#f8fafc]"
           >
             <div className="flex items-center gap-3">
-              <LogOut className="h-5 w-5 text-[#2f3947]" />
-              <span className="text-base font-semibold text-[#2f3947]">
+              <LogOut className="h-5 w-5 text-[#374151]" />
+              <span className="text-sm font-semibold text-[#111827]">
                 {logout.isPending ? '로그아웃 중' : '로그아웃'}
               </span>
             </div>
-            <ChevronRight className="h-5 w-5 text-[#b0b7c1]" />
+            <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
           </button>
         ) : (
-          <Link href="/login" className="flex items-center justify-between px-5 py-4">
+          <Link
+            href="/login"
+            className="flex items-center justify-between px-5 py-4 transition hover:bg-[#f8fafc]"
+          >
             <div className="flex items-center gap-3">
-              <LogIn className="h-5 w-5 text-[#2f3947]" />
-              <span className="text-base font-semibold text-[#2f3947]">로그인</span>
+              <LogIn className="h-5 w-5 text-[#374151]" />
+              <span className="text-sm font-semibold text-[#111827]">로그인</span>
             </div>
-            <ChevronRight className="h-5 w-5 text-[#b0b7c1]" />
+            <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
           </Link>
         )}
       </section>

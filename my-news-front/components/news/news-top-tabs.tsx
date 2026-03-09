@@ -23,18 +23,17 @@ export function NewsTopTabs({ selected, onChange }: NewsTopTabsProps) {
       if (tickingRef.current) {
         return;
       }
-
       tickingRef.current = true;
 
       requestAnimationFrame(() => {
         const currentScrollTop = scrollContainer.scrollTop;
         const previousScrollTop = lastScrollTopRef.current;
 
-        if (currentScrollTop <= 8) {
+        if (currentScrollTop <= 12) {
           setVisible(true);
-        } else if (currentScrollTop > previousScrollTop + 10) {
+        } else if (currentScrollTop > previousScrollTop + 8) {
           setVisible(false);
-        } else if (currentScrollTop < previousScrollTop - 10) {
+        } else if (currentScrollTop < previousScrollTop - 8) {
           setVisible(true);
         }
 
@@ -44,10 +43,7 @@ export function NewsTopTabs({ selected, onChange }: NewsTopTabsProps) {
     };
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
-    };
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
@@ -56,8 +52,8 @@ export function NewsTopTabs({ selected, onChange }: NewsTopTabsProps) {
         visible ? 'translate-y-0' : '-translate-y-full'
       }`}
     >
-      <div className="border-b border-[#ddd7ce] bg-[#fbfaf7]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fbfaf7]/80">
-        <div className="mx-auto w-full max-w-[1280px]">
+      <div className="border-b border-[var(--line)] bg-white/95 backdrop-blur">
+        <div className="mx-auto w-full max-w-[960px]">
           <CategoryTabs selected={selected} onChange={onChange} />
         </div>
       </div>

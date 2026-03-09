@@ -17,27 +17,18 @@ function formatRelativeTime(dateString: string) {
   const diff = now.getTime() - publishedAt.getTime();
   const minutes = Math.max(1, Math.floor(diff / (1000 * 60)));
 
-  if (minutes < 60) {
-    return `${minutes}분 전`;
-  }
-
+  if (minutes < 60) return `${minutes}분 전`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    return `${hours}시간 전`;
-  }
-
+  if (hours < 24) return `${hours}시간 전`;
   const days = Math.floor(hours / 24);
-  if (days < 7) {
-    return `${days}일 전`;
-  }
-
+  if (days < 7) return `${days}일 전`;
   return publishedAt.toLocaleDateString('ko-KR');
 }
 
 function FallbackThumb({ title }: { title: string }) {
   return (
-    <div className="absolute inset-0 flex items-end bg-[linear-gradient(135deg,#ccd6e2_0%,#dfe6ef_52%,#b6c4d2_100%)] p-4">
-      <p className="line-clamp-3 text-sm font-bold leading-6 text-white/95">{title}</p>
+    <div className="absolute inset-0 flex items-end bg-[linear-gradient(135deg,#dce9ff_0%,#bdd5ff_100%)] p-3">
+      <p className="line-clamp-2 text-xs font-semibold leading-5 text-[#1f2937]">{title}</p>
     </div>
   );
 }
@@ -58,13 +49,13 @@ export function NewsCard({ news }: NewsCardProps) {
 
   return (
     <Link href={`/news/${news.id}`} className="block">
-      <article className="relative flex gap-4 rounded-[24px] border border-[#ddd6cd] bg-[#fbfaf7] p-4 pr-16 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-transform duration-200 hover:-translate-y-0.5">
-        <div className="absolute right-4 top-4 flex items-center gap-2">
+      <article className="relative flex gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-[var(--line)] transition hover:-translate-y-0.5 hover:shadow-md">
+        <div className="absolute right-4 top-4 flex items-center gap-1.5">
           <button
             type="button"
             onClick={handleBookmarkClick}
             disabled={addBookmark.isPending}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3efe8] text-[#4a5563] transition-colors hover:bg-[#ebe5dc] disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f3f4f6] text-[#4b5563] transition hover:bg-[#e5e7eb] disabled:opacity-50"
             aria-label="북마크"
             title="북마크"
           >
@@ -76,7 +67,7 @@ export function NewsCard({ news }: NewsCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(event) => event.stopPropagation()}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3efe8] text-[#4a5563] transition-colors hover:bg-[#ebe5dc]"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f3f4f6] text-[#4b5563] transition hover:bg-[#e5e7eb]"
             aria-label="원문 보기"
             title="원문 보기"
           >
@@ -84,29 +75,20 @@ export function NewsCard({ news }: NewsCardProps) {
           </a>
         </div>
 
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] bg-[#d8ddd2] sm:h-28 sm:w-28">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#e5edf8] sm:h-24 sm:w-24">
           {news.imageUrl ? (
-            <Image
-              src={news.imageUrl}
-              alt={news.title}
-              fill
-              sizes="112px"
-              className="object-cover"
-            />
+            <Image src={news.imageUrl} alt={news.title} fill sizes="96px" className="object-cover" />
           ) : (
             <FallbackThumb title={news.title} />
           )}
         </div>
 
-        <div className="min-w-0 flex-1 py-1">
-          <h3 className="line-clamp-3 text-[1.05rem] font-extrabold leading-[1.45] tracking-[-0.02em] text-[#202733] sm:text-[1.1rem]">
-            {news.title}
-          </h3>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[#7b8390]">
-            <span className="font-medium">{news.source}</span>
-            <span className="h-1 w-1 rounded-full bg-[#c5ccd6]" />
-            <Clock className="h-4 w-4" />
+        <div className="min-w-0 flex-1 pr-16">
+          <h3 className="line-clamp-2 text-[15px] font-semibold leading-6 text-[#111827]">{news.title}</h3>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
+            <span>{news.source}</span>
+            <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
+            <Clock className="h-3.5 w-3.5" />
             <span>{formatRelativeTime(news.publishedAt)}</span>
           </div>
         </div>

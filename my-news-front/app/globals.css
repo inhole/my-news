@@ -2,6 +2,15 @@
 
 :root {
   color-scheme: light;
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface-soft: #f9fafb;
+  --line: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --primary: #3182f6;
+  --primary-weak: #e9f2ff;
+  --danger: #dc2626;
 }
 
 * {
@@ -17,7 +26,8 @@ body {
 }
 
 body {
-  color: #111827;
+  background: radial-gradient(circle at top, #f8fbff 0%, #f3f4f6 42%, #eef2f7 100%);
+  color: var(--text);
   font-family:
     "Pretendard Variable",
     "Pretendard",
