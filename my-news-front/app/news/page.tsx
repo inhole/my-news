@@ -1,19 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { CategoryTabs } from '@/components/news/category-tabs';
 import { NewsList } from '@/components/news/news-list';
+import { NewsTopTabs } from '@/components/news/news-top-tabs';
 
 export default function NewsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   return (
-    <>
-      <CategoryTabs selected={selectedCategory} onChange={setSelectedCategory} />
+    <div className="pt-[72px]">
+      <NewsTopTabs selected={selectedCategory} onChange={setSelectedCategory} />
 
-      <div className="max-w-screen-xl mx-auto px-4 md:px-6 pt-6">
+      <div className="px-4 py-5 sm:px-6 lg:px-8">
         <NewsList category={selectedCategory || undefined} />
       </div>
-    </>
+    </div>
   );
 }

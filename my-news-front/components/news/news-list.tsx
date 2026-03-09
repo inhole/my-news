@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { NewsCard } from '@/components/news/news-card';
-import { LoadingSpinner, LoadingCard } from '@/components/ui/loading';
-import { ErrorMessage } from '@/components/ui/error';
-import { EmptyState } from '@/components/ui/empty';
-import { useInfiniteNews } from '@/hooks/use-queries';
 import { Newspaper } from 'lucide-react';
+import { NewsCard } from '@/components/news/news-card';
+import { EmptyState } from '@/components/ui/empty';
+import { ErrorMessage } from '@/components/ui/error';
+import { LoadingCard, LoadingSpinner } from '@/components/ui/loading';
+import { useInfiniteNews } from '@/hooks/use-queries';
 
 interface NewsListProps {
   category?: string;
@@ -27,7 +27,6 @@ export function NewsList({ category, search }: NewsListProps) {
 
   const observerRef = useRef<HTMLDivElement>(null);
 
-  // 무한 스크롤 구현
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -47,9 +46,9 @@ export function NewsList({ category, search }: NewsListProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <LoadingCard key={i} />
+      <div className="grid gap-5 lg:grid-cols-2">
+        {[...Array(6)].map((_, index) => (
+          <LoadingCard key={index} />
         ))}
       </div>
     );
@@ -58,8 +57,8 @@ export function NewsList({ category, search }: NewsListProps) {
   if (isError) {
     return (
       <ErrorMessage
-        title="뉴스를 불러올 수 없습니다"
-        message={error?.message || '다시 시도해주세요.'}
+        title="뉴스를 불러오지 못했습니다"
+        message={error?.message || '잠시 후 다시 시도해 주세요.'}
         onRetry={() => refetch()}
       />
     );
@@ -72,24 +71,25 @@ export function NewsList({ category, search }: NewsListProps) {
       <EmptyState
         title="뉴스가 없습니다"
         message="아직 등록된 뉴스가 없습니다."
-        icon={<Newspaper className="w-12 h-12 text-gray-400 mb-4" />}
+        icon={<Newspaper className="mb-4 h-12 w-12 text-[#98a0ab]" />}
       />
     );
   }
 
   return (
     <div className="space-y-6">
-      {allNews.map((news) => (
-        <NewsCard key={news.id} news={news} />
-      ))}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {allNews.map((news) => (
+          <NewsCard key={news.id} news={news} />
+        ))}
+      </div>
 
-      {/* 무한 스크롤 트리거 */}
       <div ref={observerRef} className="py-6">
         {isFetchingNextPage && <LoadingSpinner />}
       </div>
 
       {!hasNextPage && allNews.length > 0 && (
-        <p className="text-center text-sm text-gray-500 py-6">
+        <p className="py-4 text-center text-sm text-[#7b8390]">
           모든 뉴스를 확인했습니다
         </p>
       )}

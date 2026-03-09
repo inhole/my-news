@@ -23,7 +23,8 @@ export class NewsController {
   @Get()
   @ApiOperation({
     summary: '뉴스 목록 조회',
-    description: '뉴스 목록을 페이지네이션, 카테고리, 검색어 조건으로 조회합니다.',
+    description:
+      '뉴스 목록을 페이지네이션, 카테고리, 검색어 조건으로 조회합니다.',
   })
   @ApiResponse({ status: 200, description: '뉴스 목록 조회 성공' })
   async getNews(@Query() query: GetNewsDto) {

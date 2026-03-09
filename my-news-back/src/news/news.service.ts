@@ -1,7 +1,8 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
 import axios from 'axios';
+import { CheerioAPI, load } from 'cheerio';
+import { PrismaService } from '../prisma/prisma.service';
 import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 
 type NaverSort = 'sim' | 'date';
@@ -23,6 +24,14 @@ interface NaverNewsItem {
 
 interface NaverNewsApiResponse {
   items?: NaverNewsItem[];
+}
+
+interface CrawledArticleMetadata {
+  title: string | null;
+  description: string | null;
+  content: string | null;
+  imageUrl: string | null;
+  source: string | null;
 }
 
 @Injectable()
@@ -167,35 +176,63 @@ export class NewsService {
       });
 
       let savedCount = 0;
+
       for (const article of articles) {
-        const url = article.originallink || article.link;
-        if (!url) continue;
+        const originalUrl = article.originallink;
+        const fallbackUrl = article.link;
+        const url = originalUrl || fallbackUrl;
+
+        if (!url) {
+          continue;
+        }
 
         const publishedAt = this.parsePublishedDate(article.pubDate);
         const title = this.normalizeText(article.title);
         const description = this.normalizeText(article.description);
         const source = this.extractSourceName(url);
 
+        const existingNews = await this.prisma.news.findUnique({
+          where: { url },
+          select: {
+            urlToImage: true,
+            content: true,
+          },
+        });
+
+        const shouldEnrich =
+          !existingNews || !existingNews.urlToImage || !existingNews.content;
+        const crawledMetadata = shouldEnrich
+          ? await this.fetchArticleMetadata(originalUrl, fallbackUrl)
+          : null;
+
+        const resolvedTitle = crawledMetadata?.title || title;
+        const resolvedDescription = crawledMetadata?.description || description;
+        const resolvedContent =
+          crawledMetadata?.content || resolvedDescription || description;
+        const resolvedSource = crawledMetadata?.source || source;
+        const resolvedImageUrl =
+          crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
+
         await this.prisma.news.upsert({
           where: { url },
           update: {
-            title,
-            description,
-            content: description,
-            urlToImage: null,
+            title: resolvedTitle,
+            description: resolvedDescription,
+            content: resolvedContent,
+            urlToImage: resolvedImageUrl,
             publishedAt,
-            source,
+            source: resolvedSource,
             author: null,
             categoryId: categoryRecord.id,
           },
           create: {
-            title,
-            description,
-            content: description,
+            title: resolvedTitle,
+            description: resolvedDescription,
+            content: resolvedContent,
             url,
-            urlToImage: null,
+            urlToImage: resolvedImageUrl,
             publishedAt,
-            source,
+            source: resolvedSource,
             author: null,
             categoryId: categoryRecord.id,
           },
@@ -234,6 +271,209 @@ export class NewsService {
 
     const parsed = new Date(pubDate);
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  private async fetchArticleMetadata(
+    primaryUrl?: string,
+    fallbackUrl?: string,
+  ): Promise<CrawledArticleMetadata> {
+    const candidates = [...new Set([primaryUrl, fallbackUrl].filter(Boolean))];
+
+    for (const candidateUrl of candidates) {
+      if (!candidateUrl) {
+        continue;
+      }
+
+      try {
+        const metadata = await this.fetchArticleMetadataFromUrl(candidateUrl);
+
+        if (
+          metadata.imageUrl ||
+          metadata.content ||
+          metadata.description ||
+          metadata.title
+        ) {
+          return metadata;
+        }
+      } catch (error) {
+        this.logger.debug(
+          `Failed to crawl article metadata from ${candidateUrl}: ${String(error)}`,
+        );
+      }
+    }
+
+    return {
+      title: null,
+      description: null,
+      content: null,
+      imageUrl: null,
+      source: primaryUrl ? this.extractSourceName(primaryUrl) : null,
+    };
+  }
+
+  private async fetchArticleMetadataFromUrl(
+    url: string,
+  ): Promise<CrawledArticleMetadata> {
+    const response = await axios.get<string>(url, {
+      timeout: 8000,
+      maxRedirects: 5,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8',
+      },
+    });
+
+    const html = typeof response.data === 'string' ? response.data : '';
+    if (!html) {
+      return {
+        title: null,
+        description: null,
+        content: null,
+        imageUrl: null,
+        source: this.extractSourceName(url),
+      };
+    }
+
+    const $ = load(html);
+
+    const title = this.normalizeText(
+      this.readMetaContent($, [
+        'meta[property="og:title"]',
+        'meta[name="twitter:title"]',
+        'title',
+      ]) || '',
+    );
+    const description = this.normalizeText(
+      this.readMetaContent($, [
+        'meta[property="og:description"]',
+        'meta[name="description"]',
+        'meta[name="twitter:description"]',
+      ]) || '',
+    );
+    const imageUrl = this.resolveUrl(
+      url,
+      this.readMetaContent($, [
+        'meta[property="og:image"]',
+        'meta[name="twitter:image"]',
+        'meta[name="twitter:image:src"]',
+        'meta[itemprop="image"]',
+      ]),
+    );
+    const source =
+      this.normalizeText(
+        this.readMetaContent($, [
+          'meta[property="og:site_name"]',
+          'meta[name="application-name"]',
+        ]) || '',
+      ) || this.extractSourceName(url);
+    const content = this.extractArticleContent($, description);
+
+    return {
+      title: title || null,
+      description: description || null,
+      content: content || description || null,
+      imageUrl,
+      source,
+    };
+  }
+
+  private extractArticleContent(
+    $: CheerioAPI,
+    fallbackDescription: string,
+  ): string | null {
+    const selectors = [
+      '[itemprop="articleBody"]',
+      'article',
+      '#dic_area',
+      '.newsct_article',
+      '.article_view',
+      '.article-body',
+      '.story-news',
+      'main',
+    ];
+
+    for (const selector of selectors) {
+      const container = $(selector).first();
+      if (!container.length) {
+        continue;
+      }
+
+      const paragraphs = container
+        .find('p')
+        .toArray()
+        .map((element) => this.normalizeText($(element).text()))
+        .filter((text) => text.length > 30);
+
+      const mergedParagraphs = this.uniqueParagraphs(paragraphs);
+      if (mergedParagraphs.length > 0) {
+        return mergedParagraphs.join('\n\n').slice(0, 5000);
+      }
+
+      const fallbackText = this.normalizeText(container.text());
+      if (fallbackText.length > 120) {
+        return fallbackText.slice(0, 5000);
+      }
+    }
+
+    const bodyParagraphs = this.uniqueParagraphs(
+      $('body p')
+        .toArray()
+        .map((element) => this.normalizeText($(element).text()))
+        .filter((text) => text.length > 30),
+    );
+
+    if (bodyParagraphs.length > 0) {
+      return bodyParagraphs.join('\n\n').slice(0, 5000);
+    }
+
+    return fallbackDescription || null;
+  }
+
+  private uniqueParagraphs(paragraphs: string[]): string[] {
+    const seen = new Set<string>();
+
+    return paragraphs.filter((paragraph) => {
+      if (seen.has(paragraph)) {
+        return false;
+      }
+
+      seen.add(paragraph);
+      return true;
+    });
+  }
+
+  private readMetaContent($: CheerioAPI, selectors: string[]): string | null {
+    for (const selector of selectors) {
+      const element = $(selector).first();
+      if (!element.length) {
+        continue;
+      }
+
+      const content = element.attr('content') || element.text();
+      if (content?.trim()) {
+        return content.trim();
+      }
+    }
+
+    return null;
+  }
+
+  private resolveUrl(
+    baseUrl: string,
+    targetUrl?: string | null,
+  ): string | null {
+    if (!targetUrl) {
+      return null;
+    }
+
+    try {
+      return new URL(targetUrl, baseUrl).toString();
+    } catch {
+      return null;
+    }
   }
 
   private normalizeText(value?: string): string {

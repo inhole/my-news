@@ -2,29 +2,35 @@
 
 import { Loader2 } from 'lucide-react';
 
-export function LoadingSpinner({ size = 'default' }: { size?: 'small' | 'default' | 'large' }) {
+export function LoadingSpinner({
+  size = 'default',
+}: {
+  size?: 'small' | 'default' | 'large';
+}) {
   const sizeClasses = {
-    small: 'w-4 h-4',
-    default: 'w-8 h-8',
-    large: 'w-12 h-12',
+    small: 'h-4 w-4',
+    default: 'h-8 w-8',
+    large: 'h-12 w-12',
   };
 
   return (
     <div className="flex items-center justify-center py-8">
-      <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-600`} />
+      <Loader2 className={`${sizeClasses[size]} animate-spin text-[#2f3947]`} />
     </div>
   );
 }
 
 export function LoadingCard() {
   return (
-    <div className="bg-white rounded-lg p-4 shadow-sm animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-      <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-      <div className="flex items-center gap-2 mt-3">
-        <div className="h-3 bg-gray-200 rounded w-20"></div>
-        <div className="h-3 bg-gray-200 rounded w-24"></div>
+    <div className="animate-pulse rounded-[24px] border border-[#ddd6cd] bg-[#fbfaf7] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
+      <div className="flex gap-4">
+        <div className="h-28 w-28 shrink-0 rounded-[18px] bg-[#ebe6de]" />
+        <div className="flex-1 space-y-3">
+          <div className="h-4 w-24 rounded-full bg-[#ebe6de]" />
+          <div className="h-5 w-full rounded-full bg-[#ebe6de]" />
+          <div className="h-5 w-4/5 rounded-full bg-[#ebe6de]" />
+          <div className="h-4 w-20 rounded-full bg-[#ebe6de]" />
+        </div>
       </div>
     </div>
   );
@@ -32,7 +38,7 @@ export function LoadingCard() {
 
 export function LoadingPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex min-h-[50vh] items-center justify-center">
       <LoadingSpinner size="large" />
     </div>
   );

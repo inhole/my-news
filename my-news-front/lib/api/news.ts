@@ -1,4 +1,8 @@
 import apiClient from '@/lib/api-client';
+import {
+  normalizeNews,
+  normalizeNewsListResponse,
+} from '@/lib/api/news-normalizer';
 import { Category, News, NewsListResponse } from '@/types';
 
 export const newsApi = {
@@ -16,7 +20,7 @@ export const newsApi = {
     if (search) params.append('search', search);
 
     const response = await apiClient.get(`/news?${params.toString()}`);
-    return response.data;
+    return normalizeNewsListResponse(response.data);
   },
 
   getCategories: async (): Promise<Category[]> => {
@@ -37,12 +41,12 @@ export const newsApi = {
     if (cursor) params.append('cursor', cursor);
 
     const response = await apiClient.get(`/news/search?${params.toString()}`);
-    return response.data;
+    return normalizeNewsListResponse(response.data);
   },
 
   getNewsById: async (id: string): Promise<News> => {
     const response = await apiClient.get(`/news/${id}`);
-    return response.data;
+    return normalizeNews(response.data);
   },
 
   fetchNews: async (

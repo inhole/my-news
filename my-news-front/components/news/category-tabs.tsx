@@ -1,62 +1,61 @@
 'use client';
 
+import { MoreHorizontal } from 'lucide-react';
 import { useCategories } from '@/hooks/use-queries';
 
 interface CategoryTabsProps {
   selected?: string;
   onChange: (categorySlug: string) => void;
+  defaultLabel?: string;
 }
 
-export function CategoryTabs({ selected, onChange }: CategoryTabsProps) {
+export function CategoryTabs({
+  selected,
+  onChange,
+  defaultLabel = '전체',
+}: CategoryTabsProps) {
   const { data: categories, isLoading } = useCategories();
 
   if (isLoading) {
     return (
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
-        <div className="max-w-screen-xl mx-auto px-4 md:px-6 lg:px-8">
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide py-3">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="h-9 w-20 bg-gray-200 rounded-full animate-pulse"
-              />
-            ))}
-          </div>
-        </div>
+      <div className="scrollbar-hide flex items-center gap-6 overflow-x-auto px-4 py-4 sm:px-6 lg:px-8">
+        {[...Array(6)].map((_, index) => (
+          <div key={index} className="h-7 w-16 animate-pulse rounded-full bg-[#ebe5dc]" />
+        ))}
       </div>
     );
   }
 
+  const items = [{ id: 'all', slug: '', name: defaultLabel }, ...(categories ?? [])];
+
   return (
-    <div className="bg-white border-b border-gray-200 sticky top-0 z-40 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
-      <div className="max-w-screen-xl mx-auto px-4 md:px-6 lg:px-8">
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-3">
+    <div className="scrollbar-hide flex items-center gap-6 overflow-x-auto px-4 sm:px-6 lg:px-8">
+      {items.map((item) => {
+        const isActive = item.slug === (selected ?? '');
+
+        return (
           <button
-            onClick={() => onChange('')}
-            className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              !selected || selected === ''
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            key={item.id}
+            type="button"
+            onClick={() => onChange(item.slug)}
+            className={`shrink-0 border-b-[3px] pb-4 pt-5 text-sm font-bold tracking-[-0.02em] transition-colors sm:text-base ${
+              isActive
+                ? 'border-[#ef7d2a] text-[#ef7d2a]'
+                : 'border-transparent text-[#374151]'
             }`}
           >
-            전체
+            {item.name}
           </button>
+        );
+      })}
 
-          {(categories || []).map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => onChange(cat.slug)}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                selected === cat.slug
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      <button
+        type="button"
+        aria-label="카테고리 더보기"
+        className="ml-auto shrink-0 pb-4 pt-5 text-[#a0a7b2]"
+      >
+        <MoreHorizontal className="h-6 w-6" />
+      </button>
     </div>
   );
 }

@@ -1,48 +1,48 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+}
+
 * {
   box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
 html,
 body {
+  min-height: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
 }
 
 body {
-  background: #f9fafb;
   color: #111827;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  padding: 0.5rem;
+  font-family:
+    "Pretendard Variable",
+    "Pretendard",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    "Segoe UI",
+    sans-serif;
 }
 
-@media (min-width: 768px) {
-  body {
-    padding: 1rem;
-  }
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-@media (min-width: 1024px) {
-  body {
-    padding: 1.5rem;
-  }
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
-/* 텍스트 요소에만 여백 추가 */
-h1, h2, h3, h4, h5, h6 {
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
+img {
+  display: block;
 }
 
-p {
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-}
-
-/* 스크롤바 숨기기 (모바일 스타일) */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -52,18 +52,22 @@ p {
   display: none;
 }
 
-/* 라인 클램프 */
-.line-clamp-2 {
+.line-clamp-1,
+.line-clamp-2,
+.line-clamp-3 {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.line-clamp-1 {
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  -webkit-line-clamp: 2;
 }
 
 .line-clamp-3 {
-  display: -webkit-box;
   -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
-
