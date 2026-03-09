@@ -205,10 +205,15 @@ export class NewsService {
           ? await this.fetchArticleMetadata(originalUrl, fallbackUrl)
           : null;
 
-        const resolvedTitle = crawledMetadata?.title || title;
-        const resolvedDescription = crawledMetadata?.description || description;
-        const resolvedContent =
-          crawledMetadata?.content || resolvedDescription || description;
+        const resolvedTitle = this.preferReadableText(crawledMetadata?.title, title);
+        const resolvedDescription = this.preferReadableText(
+          crawledMetadata?.description,
+          description,
+        );
+        const resolvedContent = this.preferReadableText(
+          crawledMetadata?.content,
+          resolvedDescription || description,
+        );
         const resolvedSource = crawledMetadata?.source || source;
         const resolvedImageUrl =
           crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
@@ -409,12 +414,18 @@ export class NewsService {
 
       const mergedParagraphs = this.uniqueParagraphs(paragraphs);
       if (mergedParagraphs.length > 0) {
-        return mergedParagraphs.join('\n\n').slice(0, 5000);
+        return this.preferReadableText(
+          mergedParagraphs.join('\n\n'),
+          fallbackDescription,
+        ).slice(0, 5000);
       }
 
       const fallbackText = this.normalizeText(container.text());
       if (fallbackText.length > 120) {
-        return fallbackText.slice(0, 5000);
+        return this.preferReadableText(fallbackText, fallbackDescription).slice(
+          0,
+          5000,
+        );
       }
     }
 
@@ -426,10 +437,13 @@ export class NewsService {
     );
 
     if (bodyParagraphs.length > 0) {
-      return bodyParagraphs.join('\n\n').slice(0, 5000);
+      return this.preferReadableText(
+        bodyParagraphs.join('\n\n'),
+        fallbackDescription,
+      ).slice(0, 5000);
     }
 
-    return fallbackDescription || null;
+    return this.preferReadableText(fallbackDescription, '') || null;
   }
 
   private uniqueParagraphs(paragraphs: string[]): string[] {
@@ -439,7 +453,6 @@ export class NewsService {
       if (seen.has(paragraph)) {
         return false;
       }
-
       seen.add(paragraph);
       return true;
     });
@@ -491,6 +504,44 @@ export class NewsService {
       .replace(/&nbsp;/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  private preferReadableText(primary?: string | null, fallback?: string): string {
+    const normalizedPrimary = this.normalizeText(primary || '');
+    const normalizedFallback = this.normalizeText(fallback || '');
+
+    if (
+      normalizedPrimary &&
+      !this.isLikelyCorruptedText(normalizedPrimary) &&
+      normalizedPrimary.length >= Math.min(10, Math.max(1, normalizedFallback.length))
+    ) {
+      return normalizedPrimary;
+    }
+
+    return normalizedFallback || normalizedPrimary;
+  }
+
+  private isLikelyCorruptedText(text: string): boolean {
+    if (!text) {
+      return false;
+    }
+
+    if (text.includes('�')) {
+      return true;
+    }
+
+    const latinSupplementCount = (text.match(/[\u00C0-\u024F]/g) || []).length;
+    const hangulCount = (text.match(/[가-힣]/g) || []).length;
+
+    if (hangulCount === 0 && latinSupplementCount >= 3) {
+      return true;
+    }
+
+    if (latinSupplementCount >= 6 && latinSupplementCount > hangulCount * 2) {
+      return true;
+    }
+
+    return false;
   }
 
   private extractSourceName(url: string): string {
