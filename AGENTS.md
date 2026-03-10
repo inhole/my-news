@@ -9,4 +9,3 @@
 3. DB 기본 구성은 Neon PostgreSQL + Prisma를 기준으로 한다.
 4. 설정 변경 시 관련 문서를 함께 업데이트한다.
 5. CSS 수정(특히 margin/padding/width/overflow) 시 기존 스타일과 충돌 여부를 항상 점검하고 검증한다.
-6. CSS 수정 이력은 README에 기록하지 않는다.

@@ -22,9 +22,9 @@ export function LoadingSpinner({
 
 export function LoadingCard() {
   return (
-    <div className="animate-pulse rounded-3xl bg-white p-4 shadow-sm ring-1 ring-[var(--line)]">
-      <div className="flex gap-3">
-        <div className="h-20 w-20 shrink-0 rounded-2xl bg-[#edf2f7]" />
+    <div className="animate-pulse rounded-xl bg-white p-[18px] shadow-sm ring-1 ring-[var(--line)]">
+      <div className="flex gap-3.5">
+        <div className="h-20 w-20 shrink-0 rounded-lg bg-[#edf2f7]" />
         <div className="flex-1 space-y-2">
           <div className="h-4 w-full rounded bg-[#edf2f7]" />
           <div className="h-4 w-3/4 rounded bg-[#edf2f7]" />

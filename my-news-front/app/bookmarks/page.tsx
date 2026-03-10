@@ -67,7 +67,7 @@ export default function BookmarksPage() {
       </section>
 
       {isLoading ? (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-1.5 px-1 py-2 lg:grid-cols-2">
           {[...Array(6)].map((_, i) => (
             <LoadingCard key={i} />
           ))}
@@ -85,8 +85,8 @@ export default function BookmarksPage() {
           icon={<BookmarkIcon className="mb-4 h-12 w-12 text-[#9ca3af]" />}
         />
       ) : (
-        <div className="space-y-4">
-          <div className="grid gap-3 lg:grid-cols-2">
+        <div className="space-y-2 px-1 py-2">
+          <div className="grid gap-1.5 lg:grid-cols-2">
             {allBookmarks.map((bookmark) => (
               <div key={bookmark.id} className="group relative">
                 <NewsCard news={bookmark.news} />
@@ -94,7 +94,7 @@ export default function BookmarksPage() {
                   type="button"
                   onClick={() => handleRemoveBookmark(bookmark.id)}
                   disabled={removeBookmark.isPending}
-                  className="absolute bottom-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[var(--danger)] opacity-0 shadow-sm ring-1 ring-[#fee2e2] transition group-hover:opacity-100 disabled:opacity-50"
+                  className="absolute bottom-4 left-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[var(--danger)] opacity-0 shadow-sm ring-1 ring-[#fee2e2] transition group-hover:opacity-100 disabled:opacity-50"
                   title="북마크 해제"
                 >
                   <Trash2 className="h-4 w-4" />

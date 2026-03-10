@@ -81,10 +81,12 @@ export default function NewsDetailPage() {
   }
 
   const bodyText = news.content?.trim() || news.description?.trim() || '';
-  const paragraphs = bodyText
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
+  const normalizedBody = bodyText
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\r\n?/g, '\n')
+    .trim();
 
   return (
     <article className="rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
@@ -141,13 +143,9 @@ export default function NewsDetailPage() {
           <span>{formatDate(news.publishedAt)}</span>
         </div>
 
-        <div className="mt-5 space-y-4 text-[15px] leading-7 text-[#374151]">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => (
-              <p key={index} className="break-words whitespace-pre-line">
-                {paragraph}
-              </p>
-            ))
+        <div className="mt-5 text-[15px] leading-7 text-[#374151]">
+          {normalizedBody ? (
+            <p className="break-words whitespace-pre-wrap">{normalizedBody}</p>
           ) : (
             <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
           )}

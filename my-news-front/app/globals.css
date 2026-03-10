@@ -13,15 +13,6 @@
   --danger: #f04452;
   --bottom-nav-height: 68px;
   --news-top-tabs-height: 62px;
-  --page-pad-x: 12px;
-  --page-pad-y: 0px;
-}
-
-@media (min-width: 640px) {
-  :root {
-    --page-pad-x: 16px;
-    --page-pad-y: 0px;
-  }
 }
 
 * {

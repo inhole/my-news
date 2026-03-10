@@ -49,8 +49,8 @@ export function NewsCard({ news }: NewsCardProps) {
 
   return (
     <Link href={`/news/${news.id}`} className="block">
-      <article className="relative flex gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-[var(--line)] transition hover:-translate-y-0.5 hover:shadow-md">
-        <div className="absolute right-4 top-4 flex items-center gap-1.5">
+      <article className="relative flex gap-3.5 rounded-xl bg-white p-[18px] shadow-sm ring-1 ring-[var(--line)] transition hover:-translate-y-0.5 hover:shadow-md">
+        <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
           <button
             type="button"
             onClick={handleBookmarkClick}
@@ -75,7 +75,7 @@ export function NewsCard({ news }: NewsCardProps) {
           </a>
         </div>
 
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#e8f1ff] sm:h-24 sm:w-24">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#e8f1ff] sm:h-24 sm:w-24">
           {news.imageUrl ? (
             <Image src={news.imageUrl} alt={news.title} fill sizes="96px" className="object-cover" />
           ) : (
@@ -83,7 +83,7 @@ export function NewsCard({ news }: NewsCardProps) {
           )}
         </div>
 
-        <div className="min-w-0 flex-1 pr-16">
+        <div className="min-w-0 flex-1 pb-10 pr-1">
           <h3 className="line-clamp-2 text-[15px] font-semibold leading-6 text-[var(--text)]">{news.title}</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
             <span>{news.source}</span>
