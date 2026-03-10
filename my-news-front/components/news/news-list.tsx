@@ -77,7 +77,7 @@ export function NewsList({ category, search }: NewsListProps) {
   }
 
   return (
-    <div className="space-y-4 py-1">
+    <div className="space-y-4 py-1 pb-4">
       <div className="grid gap-3 lg:grid-cols-2">
         {allNews.map((news) => (
           <NewsCard key={news.id} news={news} />

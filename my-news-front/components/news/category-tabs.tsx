@@ -48,14 +48,6 @@ export function CategoryTabs({
           </button>
         );
       })}
-
-      <button
-        type="button"
-        aria-label="카테고리 더보기"
-        className="ml-1 shrink-0 rounded-full bg-[#f2f4f6] p-2 text-[#8b95a1]"
-      >
-        <MoreHorizontal className="h-5 w-5" />
-      </button>
     </div>
   );
 }

@@ -17,10 +17,10 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <QueryProvider>
-          <div className="relative min-h-[100dvh]">
+          <div className="flex h-dvh flex-col">
             <main
               id="app-scroll-container"
-              className="mx-auto h-[100dvh] w-full max-w-[980px] overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom,0px)+var(--bottom-nav-height)+28px)] pt-4 sm:px-6"
+              className="mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-6"
             >
               {children}
             </main>

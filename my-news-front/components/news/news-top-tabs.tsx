@@ -43,13 +43,13 @@ export function NewsTopTabs({ selected, onChange }: NewsTopTabsProps) {
   }, []);
 
   return (
-    <div
-      className={`fixed left-0 right-0 top-0 z-40 transition-transform duration-300 ease-out ${
-        visible ? 'translate-y-0' : '-translate-y-full'
-      }`}
-    >
-      <div className="border-b border-[var(--line)] bg-white/95 backdrop-blur">
-        <div className="mx-auto min-h-[var(--news-top-tabs-height)] w-full max-w-[980px]">
+    <div className="sticky top-0 z-40 -mx-4 sm:-mx-6">
+      <div
+        className={`border-b border-[var(--line)] bg-white/95 backdrop-blur transition-transform duration-300 ease-out ${
+          visible ? 'translate-y-0' : '-translate-y-full'
+        }`}
+      >
+        <div className="mx-auto min-h-[var(--news-top-tabs-height)] w-full max-w-[980px] px-4 sm:px-6">
           <CategoryTabs selected={selected} onChange={onChange} />
         </div>
       </div>
