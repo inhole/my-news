@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import type { AxiosError } from 'axios';
 import { FormEvent, useState } from 'react';
@@ -121,3 +121,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

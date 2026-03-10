@@ -46,7 +46,7 @@ export function NewsList({ category, search }: NewsListProps) {
 
   if (isLoading) {
     return (
-      <div className="grid gap-1.5 px-1 py-2 lg:grid-cols-2">
+      <div className="news-list-wrap news-list-grid grid lg:grid-cols-2">
         {[...Array(6)].map((_, index) => (
           <LoadingCard key={index} />
         ))}
@@ -77,8 +77,8 @@ export function NewsList({ category, search }: NewsListProps) {
   }
 
   return (
-    <div className="space-y-2 px-1 py-2 pb-4">
-      <div className="grid gap-1.5 lg:grid-cols-2">
+    <div className="news-list-wrap space-y-2 pb-4">
+      <div className="news-list-grid grid lg:grid-cols-2">
         {allNews.map((news) => (
           <NewsCard key={news.id} news={news} />
         ))}

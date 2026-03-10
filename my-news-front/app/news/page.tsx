@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { NewsList } from '@/components/news/news-list';
@@ -14,3 +14,4 @@ export default function NewsPage() {
     </div>
   );
 }
+

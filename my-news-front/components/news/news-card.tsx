@@ -49,7 +49,7 @@ export function NewsCard({ news }: NewsCardProps) {
 
   return (
     <Link href={`/news/${news.id}`} className="block">
-      <article className="relative flex gap-3.5 rounded-xl bg-white p-[18px] shadow-sm ring-1 ring-[var(--line)] transition hover:-translate-y-0.5 hover:shadow-md">
+      <article className="news-item-shell news-item-row relative flex rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)] transition hover:-translate-y-0.5 hover:shadow-md">
         <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
           <button
             type="button"

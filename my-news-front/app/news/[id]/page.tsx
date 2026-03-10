@@ -89,8 +89,9 @@ export default function NewsDetailPage() {
     .trim();
 
   return (
-    <article className="rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
-      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#f1f5f9] bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
+    <div className="page-content">
+      <article className="rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#f1f5f9] bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
         <button
           type="button"
           onClick={() => router.back()}
@@ -121,46 +122,47 @@ export default function NewsDetailPage() {
         </div>
       </div>
 
-      {news.imageUrl && (
-        <div className="relative h-[220px] w-full bg-[#e5edf8] sm:h-[320px]">
-          <Image src={news.imageUrl} alt={news.title} fill priority className="object-cover" />
+        {news.imageUrl && (
+          <div className="relative h-[220px] w-full bg-[#e5edf8] sm:h-[320px]">
+            <Image src={news.imageUrl} alt={news.title} fill priority className="object-cover" />
+          </div>
+        )}
+
+        <div className="px-4 py-6 sm:px-6">
+          <span className="inline-flex rounded-full bg-[var(--primary-weak)] px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+            {news.category.name}
+          </span>
+
+          <h1 className="mt-3 break-words text-2xl font-bold leading-9 tracking-[-0.02em] text-[#111827] sm:text-[2rem]">
+            {news.title}
+          </h1>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-[#f1f5f9] pb-4 text-xs text-[#6b7280]">
+            <span className="font-medium">{news.source}</span>
+            <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
+            <Clock className="h-3.5 w-3.5" />
+            <span>{formatDate(news.publishedAt)}</span>
+          </div>
+
+          <div className="mt-5 text-[15px] leading-7 text-[#374151]">
+            {normalizedBody ? (
+              <p className="break-words whitespace-pre-wrap">{normalizedBody}</p>
+            ) : (
+              <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
+            )}
+          </div>
+
+          <a
+            href={news.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
+          >
+            <span>원문 보기</span>
+            <ExternalLink className="h-4 w-4" />
+          </a>
         </div>
-      )}
-
-      <div className="px-4 py-6 sm:px-6">
-        <span className="inline-flex rounded-full bg-[var(--primary-weak)] px-3 py-1 text-xs font-semibold text-[var(--primary)]">
-          {news.category.name}
-        </span>
-
-        <h1 className="mt-3 break-words text-2xl font-bold leading-9 tracking-[-0.02em] text-[#111827] sm:text-[2rem]">
-          {news.title}
-        </h1>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-[#f1f5f9] pb-4 text-xs text-[#6b7280]">
-          <span className="font-medium">{news.source}</span>
-          <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
-          <Clock className="h-3.5 w-3.5" />
-          <span>{formatDate(news.publishedAt)}</span>
-        </div>
-
-        <div className="mt-5 text-[15px] leading-7 text-[#374151]">
-          {normalizedBody ? (
-            <p className="break-words whitespace-pre-wrap">{normalizedBody}</p>
-          ) : (
-            <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
-          )}
-        </div>
-
-        <a
-          href={news.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
-        >
-          <span>원문 보기</span>
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      </div>
-    </article>
+      </article>
+    </div>
   );
 }

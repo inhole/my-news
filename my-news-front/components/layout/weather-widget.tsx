@@ -125,7 +125,7 @@ export function WeatherWidget() {
 
   if (isLoading || !weather) {
     return (
-      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-[var(--line)] sm:p-5">
+      <section className="item-inner-pad rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)]">
         <p className="text-sm font-semibold text-[#6b7280]">현재 날씨</p>
         <div className="mt-3 flex items-center gap-3">
           <Cloud className="h-6 w-6 animate-pulse text-[var(--primary)]" />
@@ -137,7 +137,7 @@ export function WeatherWidget() {
 
   return (
     <section className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)]">
-      <div className="bg-[linear-gradient(135deg,#3182f6_0%,#4f9cff_100%)] px-4 py-4 text-white sm:px-5 sm:py-5">
+      <div className="item-inner-pad bg-[linear-gradient(135deg,#3182f6_0%,#4f9cff_100%)] text-white">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-white/80">현재 날씨</p>
@@ -150,12 +150,12 @@ export function WeatherWidget() {
         </div>
       </div>
 
-      <div className="space-y-4 p-4 sm:p-5">
+      <div className="item-inner-pad space-y-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9ca3af]">시간별</p>
           <div className="scrollbar-hide mt-2 flex gap-2 overflow-x-auto pb-1">
             {weather.hourly.slice(0, 12).map((hour) => (
-              <div key={hour.time} className="min-w-[72px] rounded-lg bg-[#f3f4f6] px-3 py-2 text-center">
+              <div key={hour.time} className="item-inner-pad min-w-[72px] rounded-lg bg-[#f3f4f6] text-center">
                 <p className="text-[11px] font-medium text-[#6b7280]">{formatHourLabel(hour.time)}</p>
                 <div className="mt-1 flex justify-center">{getWeatherIcon(hour.weatherCode, 'h-4 w-4')}</div>
                 <p className="mt-1 text-sm font-semibold text-[#111827]">{Math.round(hour.temperature)}°</p>
@@ -168,7 +168,7 @@ export function WeatherWidget() {
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9ca3af]">주간 예보</p>
           <div className="mt-2 space-y-2">
             {weather.daily.slice(0, 7).map((day, index) => (
-              <div key={day.date} className="flex items-center justify-between rounded-lg bg-[#f9fafb] px-3 py-2">
+              <div key={day.date} className="item-inner-pad flex items-center justify-between rounded-lg bg-[#f9fafb]">
                 <div className="flex items-center gap-2">
                   <span className="w-9 text-sm font-semibold text-[#374151]">{formatDayLabel(day.date, index)}</span>
                   {getWeatherIcon(day.weatherCode, 'h-4 w-4')}

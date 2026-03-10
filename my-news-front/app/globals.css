@@ -13,6 +13,23 @@
   --danger: #f04452;
   --bottom-nav-height: 68px;
   --news-top-tabs-height: 62px;
+  --page-pad-x: 12px;
+  --page-pad-y: 0px;
+  --news-list-pad-x: 2px;
+  --news-list-pad-y: 4px;
+  --news-list-gap: 4px;
+  --news-item-gap: 14px;
+  --item-pad-x: 10px;
+  --item-pad-y: 10px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --page-pad-x: 16px;
+    --page-pad-y: 0px;
+    --item-pad-x: 12px;
+    --item-pad-y: 12px;
+  }
 }
 
 * {
@@ -37,6 +54,27 @@ body {
 .app-main {
   padding: var(--page-pad-y) var(--page-pad-x);
 }
+
+.news-list-wrap {
+  padding: var(--news-list-pad-y) var(--news-list-pad-x);
+}
+
+.news-list-grid {
+  gap: var(--news-list-gap);
+}
+
+.news-item-shell {
+  padding: var(--item-pad-y) var(--item-pad-x);
+}
+
+.news-item-row {
+  gap: var(--news-item-gap);
+}
+
+.item-inner-pad {
+  padding: var(--item-pad-y) var(--item-pad-x);
+}
+
 
 a {
   color: inherit;

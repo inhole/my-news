@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef } from 'react';
 import { Bookmark as BookmarkIcon, Trash2 } from 'lucide-react';
@@ -67,7 +67,7 @@ export default function BookmarksPage() {
       </section>
 
       {isLoading ? (
-        <div className="grid gap-1.5 px-1 py-2 lg:grid-cols-2">
+        <div className="news-list-wrap news-list-grid grid lg:grid-cols-2">
           {[...Array(6)].map((_, i) => (
             <LoadingCard key={i} />
           ))}
@@ -85,8 +85,8 @@ export default function BookmarksPage() {
           icon={<BookmarkIcon className="mb-4 h-12 w-12 text-[#9ca3af]" />}
         />
       ) : (
-        <div className="space-y-2 px-1 py-2">
-          <div className="grid gap-1.5 lg:grid-cols-2">
+        <div className="news-list-wrap space-y-2">
+          <div className="news-list-grid grid lg:grid-cols-2">
             {allBookmarks.map((bookmark) => (
               <div key={bookmark.id} className="group relative">
                 <NewsCard news={bookmark.news} />
@@ -113,3 +113,4 @@ export default function BookmarksPage() {
     </div>
   );
 }
+

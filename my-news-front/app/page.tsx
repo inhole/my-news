@@ -84,7 +84,7 @@ export default function Home() {
               <Link
                 key={article.id}
                 href={`/news/${article.id}`}
-                className={`grid min-w-0 gap-3 rounded-lg px-3 py-3 transition hover:bg-[#f8fafc] sm:grid-cols-[1fr_110px] sm:items-center ${
+                className={`item-inner-pad grid min-w-0 gap-3 rounded-lg transition hover:bg-[#f8fafc] sm:grid-cols-[1fr_110px] sm:items-center ${
                   index < articles.length - 1 ? 'border-b border-[#f1f5f9]' : ''
                 }`}
               >

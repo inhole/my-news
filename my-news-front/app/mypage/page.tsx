@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -36,7 +36,7 @@ export default function MyPage() {
       <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
         <Link
           href="/bookmarks"
-          className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4 transition hover:bg-[#f8fafc]"
+          className="item-inner-pad flex items-center justify-between border-b border-[#f1f5f9] transition hover:bg-[#f8fafc]"
         >
           <div className="flex items-center gap-3">
             <Bookmark className="h-5 w-5 text-[var(--primary)]" />
@@ -50,7 +50,7 @@ export default function MyPage() {
             type="button"
             onClick={handleLogout}
             disabled={logout.isPending}
-            className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-[#f8fafc]"
+            className="item-inner-pad flex w-full items-center justify-between text-left transition hover:bg-[#f8fafc]"
           >
             <div className="flex items-center gap-3">
               <LogOut className="h-5 w-5 text-[#374151]" />
@@ -61,7 +61,7 @@ export default function MyPage() {
             <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
           </button>
         ) : (
-          <Link href="/login" className="flex items-center justify-between px-5 py-4 transition hover:bg-[#f8fafc]">
+          <Link href="/login" className="item-inner-pad flex items-center justify-between transition hover:bg-[#f8fafc]">
             <div className="flex items-center gap-3">
               <LogIn className="h-5 w-5 text-[#374151]" />
               <span className="text-sm font-semibold text-[#111827]">로그인</span>
@@ -73,3 +73,4 @@ export default function MyPage() {
     </div>
   );
 }
+
