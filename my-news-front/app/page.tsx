@@ -58,7 +58,7 @@ export default function Home() {
   const articles = data?.pages.flatMap((page) => page.items).slice(0, 5) ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       {isLoading ? (
         <HomeLoading />
       ) : isError ? (
@@ -74,26 +74,26 @@ export default function Home() {
           icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
-          <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+          <div className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
             <WeatherWidget />
           </div>
 
-          <section className="rounded-3xl bg-white p-2 shadow-sm ring-1 ring-[var(--line)] sm:p-4">
+          <section className="min-w-0 rounded-3xl bg-white p-2 shadow-sm ring-1 ring-[var(--line)] sm:p-4">
             {articles.map((article, index) => (
               <Link
                 key={article.id}
                 href={`/news/${article.id}`}
-                className={`grid gap-3 rounded-2xl px-3 py-3 transition hover:bg-[#f8fafc] sm:grid-cols-[1fr_110px] sm:items-center ${
+                className={`grid min-w-0 gap-3 rounded-2xl px-3 py-3 transition hover:bg-[#f8fafc] sm:grid-cols-[1fr_110px] sm:items-center ${
                   index < articles.length - 1 ? 'border-b border-[#f1f5f9]' : ''
                 }`}
               >
                 <div className="min-w-0">
-                  <h2 className="line-clamp-2 text-[15px] font-semibold leading-6 text-[#111827]">
+                  <h2 className="line-clamp-2 break-words text-[15px] font-semibold leading-6 text-[#111827]">
                     {article.title}
                   </h2>
-                  <div className="mt-2 flex items-center gap-2 text-xs text-[#6b7280]">
-                    <span>{article.source}</span>
+                  <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-[#6b7280]">
+                    <span className="truncate">{article.source}</span>
                     <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
                     <Clock className="h-3.5 w-3.5" />
                     <span>{formatRelativeTime(article.publishedAt)}</span>

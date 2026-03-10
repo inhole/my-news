@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Cloud, CloudDrizzle, CloudRain, CloudSnow, Sun, Wind } from 'lucide-react';
 import { useWeather } from '@/hooks/use-queries';
 
+const GANGNAM_COORDS = { lat: 37.4979, lon: 127.0276 };
+
 function getWeatherDescription(code: number): string {
   const weatherCodes: Record<number, string> = {
     0: '맑음',
@@ -58,34 +60,68 @@ function formatDayLabel(dateString: string, index: number): string {
 }
 
 export function WeatherWidget() {
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
-  const [geoError, setGeoError] = useState(() =>
-    typeof navigator !== 'undefined' && !('geolocation' in navigator)
-      ? '위치 정보를 지원하지 않는 브라우저입니다.'
-      : ''
-  );
+  const [coords, setCoords] = useState(GANGNAM_COORDS);
+  const [locationLabel, setLocationLabel] = useState('서울 강남 기준');
+  const [geoNotice, setGeoNotice] = useState('');
   const { data: weather, isLoading } = useWeather(coords?.lat, coords?.lon);
 
   useEffect(() => {
-    if (geoError || !('geolocation' in navigator)) {
-      return;
+    let mounted = true;
+
+    const setGangnamFallback = (notice: string) => {
+      if (!mounted) return;
+      setCoords(GANGNAM_COORDS);
+      setLocationLabel('서울 강남 기준');
+      setGeoNotice(notice);
+    };
+
+    const requestCurrentPosition = () => {
+      if (!('geolocation' in navigator)) {
+        setGangnamFallback('위치 정보를 지원하지 않아 서울 강남 기준 날씨를 표시합니다.');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (!mounted) return;
+          setCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
+          setLocationLabel('내 위치 기준');
+          setGeoNotice('');
+        },
+        () => setGangnamFallback('위치 권한이 없어 서울 강남 기준 날씨를 표시합니다.'),
+        { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 8000 }
+      );
+    };
+
+    if (typeof navigator === 'undefined') {
+      return () => {
+        mounted = false;
+      };
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => setCoords({ lat: position.coords.latitude, lon: position.coords.longitude }),
-      () => setGeoError('위치 권한이 없어 날씨 정보를 불러오지 못했습니다.'),
-      { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 8000 }
-    );
-  }, [geoError]);
+    if (!('permissions' in navigator)) {
+      requestCurrentPosition();
+      return () => {
+        mounted = false;
+      };
+    }
 
-  if (geoError) {
-    return (
-      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[var(--line)]">
-        <p className="text-sm font-semibold text-[#6b7280]">현재 날씨</p>
-        <p className="mt-3 text-sm leading-6 text-[#4b5563]">{geoError}</p>
-      </section>
-    );
-  }
+    navigator.permissions
+      .query({ name: 'geolocation' })
+      .then((status) => {
+        if (!mounted) return;
+        if (status.state === 'denied') {
+          setGangnamFallback('위치 권한이 없어 서울 강남 기준 날씨를 표시합니다.');
+          return;
+        }
+        requestCurrentPosition();
+      })
+      .catch(() => requestCurrentPosition());
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   if (isLoading || !weather) {
     return (
@@ -105,8 +141,10 @@ export function WeatherWidget() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-white/80">현재 날씨</p>
+            <p className="mt-1 text-xs font-medium text-white/90">{locationLabel}</p>
             <p className="mt-1 text-4xl font-bold">{Math.round(weather.temperature)}°</p>
             <p className="mt-1 text-sm text-white/90">{getWeatherDescription(weather.weatherCode)}</p>
+            {geoNotice ? <p className="mt-2 text-xs text-white/90">{geoNotice}</p> : null}
           </div>
           <div className="rounded-2xl bg-white/20 p-2">{getWeatherIcon(weather.weatherCode, 'h-8 w-8')}</div>
         </div>

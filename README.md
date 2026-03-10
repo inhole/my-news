@@ -91,3 +91,15 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 - Enabled reliable horizontal scrolling for category chips by using an inner `min-w-max` row inside an `overflow-x-auto` container.
 - Updated category tabs to text-style top navigation with active underline.
 - Removed fixed top-tab min-height so the header size follows content dynamically.
+
+## 2026-03-10 Weather Location Update
+
+- Home weather now checks geolocation permission state before requesting current position.
+- If location permission is denied, unavailable, or unsupported, weather falls back to default coordinates for Gangnam, Seoul (`37.4979`, `127.0276`).
+- The weather card shows whether data is based on `내 위치 기준` or `서울 강남 기준`.
+
+## 2026-03-10 Home Responsive Overflow Update
+
+- Prevented horizontal page scrolling on Home by adding `overflow-x-hidden` to the main scroll container.
+- Added `min-w-0` to Home grid and card layout blocks so content cannot force grid overflow on narrow widths.
+- Added long-text safeguards (`break-words`, `truncate`) for article title/source to avoid width expansion.
