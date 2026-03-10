@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+  baseURL: apiBaseUrl,
   withCredentials: true, // HttpOnly 쿠키 포함
   headers: {
     'Content-Type': 'application/json',
@@ -32,7 +34,7 @@ apiClient.interceptors.response.use(
       try {
         // Refresh Token으로 새 Access Token 발급
         const { data } = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/auth/refresh`,
+          `${apiBaseUrl}/auth/refresh`,
           {},
           { withCredentials: true }
         );

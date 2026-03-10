@@ -54,3 +54,18 @@ macOS/Linux:
 
 - 모든 코드/문서는 UTF-8로 유지합니다.
 - 문서화는 한국어 기준으로 유지합니다.
+
+## 7. Frontend local proxy (mobile-friendly)
+
+For local mobile checks, use these frontend env values:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=/api
+BACKEND_BASE_URL=http://localhost:3000
+```
+
+And run frontend on LAN:
+
+```bash
+npm run dev:front
+```

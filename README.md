@@ -76,3 +76,11 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 - 추가로 원문 HTML의 `og:image`, `twitter:image`를 우선 추출해 썸네일로 사용합니다.
 - 이미지가 없거나 접근 불가 시 프론트에서 대체 썸네일 UI를 표시합니다.
 - `next/image` 호스트 오류 방지를 위해 현재는 `images.unoptimized = true`로 운영합니다.
+
+## Local Mobile Check
+
+- Start frontend with LAN binding: `npm run dev:front` (runs `next dev -H 0.0.0.0 -p 3001`)
+- Frontend env (`my-news-front/.env.local`):
+  - `NEXT_PUBLIC_API_BASE_URL=/api`
+  - `BACKEND_BASE_URL=http://localhost:3000`
+- Open from mobile with your PC IP: `http://<PC_LAN_IP>:3001`

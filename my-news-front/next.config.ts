@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 
+const backendBaseUrl = process.env.BACKEND_BASE_URL || 'http://localhost:3000';
+
 const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
@@ -8,7 +10,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/:path*',
+        destination: `${backendBaseUrl}/:path*`,
       },
     ];
   },
