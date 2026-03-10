@@ -49,7 +49,7 @@ export function NewsTopTabs({ selected, onChange }: NewsTopTabsProps) {
           visible ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
-        <div className="mx-auto min-h-[var(--news-top-tabs-height)] w-full max-w-[980px] px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6">
           <CategoryTabs selected={selected} onChange={onChange} />
         </div>
       </div>

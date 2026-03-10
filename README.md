@@ -84,3 +84,10 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
   - `NEXT_PUBLIC_API_BASE_URL=/api`
   - `BACKEND_BASE_URL=http://localhost:3000`
 - Open from mobile with your PC IP: `http://<PC_LAN_IP>:3001`
+
+## 2026-03-10 UI Update
+
+- Enlarged the top category buttons in the News tab for better tap targets.
+- Enabled reliable horizontal scrolling for category chips by using an inner `min-w-max` row inside an `overflow-x-auto` container.
+- Updated category tabs to text-style top navigation with active underline.
+- Removed fixed top-tab min-height so the header size follows content dynamically.
