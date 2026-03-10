@@ -20,7 +20,7 @@ export default function RootLayout({
           <div className="flex h-dvh flex-col">
             <main
               id="app-scroll-container"
-              className="mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-x-hidden overflow-y-auto px-4 pb-6 pt-4 sm:px-6"
+              className="app-main mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-x-hidden overflow-y-auto"
             >
               {children}
             </main>

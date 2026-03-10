@@ -33,14 +33,14 @@ function FallbackThumb({ title }: { title: string }) {
 function HomeLoading() {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
-      <div className="h-[340px] animate-pulse rounded-3xl bg-[#edf2f7]" />
-      <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[var(--line)]">
+      <div className="h-[340px] animate-pulse rounded-xl bg-[#edf2f7]" />
+      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-[var(--line)] sm:p-5">
         {[...Array(5)].map((_, index) => (
           <div
             key={index}
             className={`flex gap-4 py-4 ${index < 4 ? 'border-b border-[#f1f5f9]' : ''}`}
           >
-            <div className="h-20 w-20 shrink-0 rounded-2xl bg-[#edf2f7]" />
+            <div className="h-20 w-20 shrink-0 rounded-lg bg-[#edf2f7]" />
             <div className="flex-1 space-y-2">
               <div className="h-4 w-full rounded bg-[#edf2f7]" />
               <div className="h-4 w-3/4 rounded bg-[#edf2f7]" />
@@ -79,12 +79,12 @@ export default function Home() {
             <WeatherWidget />
           </div>
 
-          <section className="min-w-0 rounded-3xl bg-white p-2 shadow-sm ring-1 ring-[var(--line)] sm:p-4">
+          <section className="min-w-0 rounded-xl bg-white p-3 shadow-sm ring-1 ring-[var(--line)] sm:p-4">
             {articles.map((article, index) => (
               <Link
                 key={article.id}
                 href={`/news/${article.id}`}
-                className={`grid min-w-0 gap-3 rounded-2xl px-3 py-3 transition hover:bg-[#f8fafc] sm:grid-cols-[1fr_110px] sm:items-center ${
+                className={`grid min-w-0 gap-3 rounded-lg px-3 py-3 transition hover:bg-[#f8fafc] sm:grid-cols-[1fr_110px] sm:items-center ${
                   index < articles.length - 1 ? 'border-b border-[#f1f5f9]' : ''
                 }`}
               >
@@ -100,7 +100,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#e5edf8] sm:h-20 sm:w-[110px] sm:justify-self-end">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-[#e5edf8] sm:h-20 sm:w-[110px] sm:justify-self-end">
                   {article.imageUrl ? (
                     <Image
                       src={article.imageUrl}
@@ -118,7 +118,7 @@ export default function Home() {
 
             <Link
               href="/news"
-              className="mx-2 mt-2 inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold text-[var(--primary)] transition hover:bg-[var(--primary-weak)]"
+              className="mx-1 mt-2 inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-[var(--primary)] transition hover:bg-[var(--primary-weak)]"
             >
               <span>뉴스 더보기</span>
               <ChevronRight className="h-4 w-4" />
