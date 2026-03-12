@@ -1,0 +1,212 @@
+'use client';
+
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Ellipsis, LogIn, Search } from 'lucide-react';
+import { CategoryTabs } from '@/components/news/category-tabs';
+import { useNewsDetail } from '@/hooks/use-queries';
+
+function formatTodayLabel() {
+  return new Date().toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  });
+}
+
+export function AppTopNav() {
+  const pathname = usePathname();
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('search') || '');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const headerRef = useRef<HTMLElement>(null);
+  const lastScrollTopRef = useRef(0);
+  const tickingRef = useRef(false);
+  const isNewsRoute = pathname === '/news' || pathname?.startsWith('/news/');
+  const newsId = typeof params.id === 'string' ? params.id : '';
+  const { data: detailNews } = useNewsDetail(isNewsRoute ? newsId : '');
+
+  useEffect(() => {
+    setSearchKeyword(searchParams.get('search') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const syncAuthState = () => {
+      setIsLoggedIn(Boolean(localStorage.getItem('accessToken')));
+    };
+
+    syncAuthState();
+    window.addEventListener('storage', syncAuthState);
+    return () => window.removeEventListener('storage', syncAuthState);
+  }, []);
+
+  const selectedCategory = useMemo(() => {
+    if (pathname === '/news') {
+      return searchParams.get('category') || '';
+    }
+
+    if (pathname?.startsWith('/news/')) {
+      return detailNews?.category.slug || '';
+    }
+
+    return '';
+  }, [detailNews?.category.slug, pathname, searchParams]);
+
+  useEffect(() => {
+    const scrollContainer = document.getElementById('app-scroll-container');
+    if (!scrollContainer) {
+      return;
+    }
+
+    const handleScroll = () => {
+      if (tickingRef.current) {
+        return;
+      }
+
+      tickingRef.current = true;
+
+      requestAnimationFrame(() => {
+        const currentScrollTop = scrollContainer.scrollTop;
+        const previousScrollTop = lastScrollTopRef.current;
+
+        if (currentScrollTop <= 16) {
+          setVisible(true);
+        } else if (currentScrollTop > previousScrollTop + 8) {
+          setVisible(false);
+          setIsMenuOpen(false);
+        } else if (currentScrollTop < previousScrollTop - 8) {
+          setVisible(true);
+        }
+
+        lastScrollTopRef.current = currentScrollTop;
+        tickingRef.current = false;
+      });
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const updateOffset = () => {
+      const nextOffset =
+        visible && headerRef.current ? `${headerRef.current.offsetHeight}px` : '0px';
+      document.documentElement.style.setProperty('--app-top-nav-offset', nextOffset);
+    };
+
+    updateOffset();
+    window.addEventListener('resize', updateOffset);
+
+    return () => {
+      window.removeEventListener('resize', updateOffset);
+      document.documentElement.style.setProperty('--app-top-nav-offset', '0px');
+    };
+  }, [visible, isNewsRoute, selectedCategory]);
+
+  const handleCategoryChange = (categorySlug: string) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (categorySlug) {
+      nextParams.set('category', categorySlug);
+    } else {
+      nextParams.delete('category');
+    }
+
+    const nextQuery = nextParams.toString();
+    router.push(nextQuery ? `/news?${nextQuery}` : '/news');
+  };
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextParams = new URLSearchParams();
+    const trimmed = searchKeyword.trim();
+
+    if (trimmed) {
+      nextParams.set('search', trimmed);
+    }
+
+    router.push(nextParams.toString() ? `/news?${nextParams.toString()}` : '/news');
+    setIsMenuOpen(false);
+  };
+
+  return (
+    <header
+      ref={headerRef}
+      className={`fixed left-0 right-0 top-0 z-50 transition-transform duration-300 ease-out ${
+        visible ? 'translate-y-0' : '-translate-y-full'
+      }`}
+    >
+      <div className="mx-auto w-full max-w-[980px] px-3 pt-3 sm:px-6">
+        <div className="toss-card overflow-visible rounded-[30px]">
+          <div className="flex items-center justify-between px-5 py-4 sm:px-6">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                My News
+              </p>
+              <p className="mt-1 text-sm font-bold text-[var(--text)]">{formatTodayLabel()}</p>
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#374151] transition hover:bg-[#e9eef5]"
+                aria-label="더보기"
+              >
+                <Ellipsis className="h-5 w-5" />
+              </button>
+
+              {isMenuOpen && (
+                <div className="absolute right-0 top-14 w-[292px] rounded-[24px] bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-[var(--line)]">
+                  <form onSubmit={handleSearchSubmit} className="space-y-2">
+                    <label className="text-xs font-semibold text-[#6b7280]">검색</label>
+                    <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface-soft)] px-3 py-3 ring-1 ring-[var(--line)]">
+                      <Search className="h-4 w-4 text-[#6b7280]" />
+                      <input
+                        value={searchKeyword}
+                        onChange={(event) => setSearchKeyword(event.target.value)}
+                        placeholder="뉴스 검색어 입력"
+                        className="w-full bg-transparent text-sm text-[#111827] outline-none"
+                      />
+                    </div>
+                  </form>
+
+                  <div className="mt-3 rounded-[20px] bg-[var(--surface-soft)] px-4 py-4">
+                    <p className="text-xs font-semibold text-[#6b7280]">로그인 정보</p>
+                    <p className="mt-1 text-sm font-bold text-[#111827]">
+                      {isLoggedIn ? '로그인됨' : '로그인 필요'}
+                    </p>
+                    <Link
+                      href={isLoggedIn ? '/mypage' : '/login'}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      <span>{isLoggedIn ? '계정 정보 보기' : '로그인하러 가기'}</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {isNewsRoute && (
+            <div className="border-t border-[var(--line)] px-4 pb-3 sm:px-5">
+              <CategoryTabs selected={selectedCategory} onChange={handleCategoryChange} />
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

@@ -14,8 +14,8 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="z-50 border-t border-[var(--line)] bg-white/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-[980px] px-3 pb-[env(safe-area-inset-bottom,0px)] pt-1 sm:px-6">
+    <nav className="z-50 border-t border-[var(--line)] bg-white/92 backdrop-blur">
+      <div className="mx-auto w-full max-w-[980px] px-3 pb-[env(safe-area-inset-bottom,0px)] pt-2 sm:px-6">
         <ul className="grid h-[var(--bottom-nav-height)] w-full grid-cols-3 gap-2">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive =
@@ -27,14 +27,14 @@ export function BottomNav() {
               <li key={href}>
                 <Link
                   href={href}
-                  className={`flex h-full flex-col items-center justify-center rounded-xl text-[11px] font-semibold leading-none transition ${
+                  className={`flex h-full flex-col items-center justify-center rounded-2xl text-[11px] font-semibold leading-none transition ${
                     isActive
-                      ? 'bg-[var(--primary-weak)] text-[var(--primary)]'
-                      : 'text-[var(--muted)] hover:bg-[#f2f4f6]'
+                      ? 'bg-[var(--primary-weak)] text-[var(--primary-strong)]'
+                      : 'text-[var(--muted)] hover:bg-[var(--surface-soft)]'
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
-                  <span className="mt-0.5">{label}</span>
+                  <Icon className={`mb-1 ${isActive ? 'h-5 w-5' : 'h-[18px] w-[18px]'}`} />
+                  <span>{label}</span>
                 </Link>
               </li>
             );

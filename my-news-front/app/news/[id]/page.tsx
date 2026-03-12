@@ -2,9 +2,8 @@
 
 import type { AxiosError } from 'axios';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Bookmark, Clock, ExternalLink, Share2 } from 'lucide-react';
-import { CategoryTabs } from '@/components/news/category-tabs';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingPage } from '@/components/ui/loading';
 import { useAddBookmark, useNewsDetail } from '@/hooks/use-queries';
@@ -15,7 +14,6 @@ type ApiErrorResponse = {
 
 export default function NewsDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
   const { data: news, isLoading, isError, error, refetch } = useNewsDetail(id);
   const addBookmark = useAddBookmark();
@@ -54,15 +52,6 @@ export default function NewsDetailPage() {
     alert('링크를 복사했습니다.');
   };
 
-  const handleCategoryChange = (categorySlug: string) => {
-    if (!categorySlug) {
-      router.push('/news');
-      return;
-    }
-
-    router.push(`/news?category=${encodeURIComponent(categorySlug)}`);
-  };
-
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleString('ko-KR', {
       year: 'numeric',
@@ -94,80 +83,72 @@ export default function NewsDetailPage() {
   const bodyText = news.content?.trim() || news.description?.trim() || '';
 
   return (
-    <div className="page-content space-y-3">
-      <div className="sticky top-0 z-40 -mx-4 sm:-mx-6">
-        <div className="border-b border-[var(--line)] bg-white/95 backdrop-blur">
-          <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6">
-            <CategoryTabs selected={news.category.slug} onChange={handleCategoryChange} />
-          </div>
-        </div>
-      </div>
-
-      <article className="rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
-        <div className="flex items-center justify-end gap-2 border-b border-[#f1f5f9] px-4 py-3 sm:px-5">
-          <button
-            type="button"
-            onClick={handleShare}
-            className="rounded-full bg-[#f3f4f6] p-2 text-[#4b5563] hover:bg-[#e5e7eb]"
-            title="공유하기"
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleBookmark}
-            disabled={addBookmark.isPending}
-            className="rounded-full bg-[#f3f4f6] p-2 text-[#4b5563] hover:bg-[#e5e7eb] disabled:opacity-50"
-            title="북마크"
-          >
-            <Bookmark className="h-4 w-4" />
-          </button>
-        </div>
-
+    <div className="mx-auto w-full max-w-[880px]">
+      <article className="toss-card overflow-hidden">
         {news.imageUrl && (
-          <div className="relative h-[220px] w-full bg-[#e5edf8] sm:h-[320px]">
+          <div className="relative h-[260px] w-full bg-[#e5edf8] sm:h-[380px]">
             <Image src={news.imageUrl} alt={news.title} fill priority className="object-cover" />
           </div>
         )}
 
-        <div className="px-4 py-6 sm:px-6">
-          <span className="inline-flex rounded-full bg-[var(--primary-weak)] px-3 py-1 text-xs font-semibold text-[var(--primary)]">
-            {news.category.name}
-          </span>
+        <div className="px-5 py-6 sm:px-8 sm:py-8">
+          <p className="text-sm font-semibold text-[var(--primary-strong)]">{news.category.name}</p>
 
-          <h1 className="mt-3 break-words text-2xl font-bold leading-9 tracking-[-0.02em] text-[#111827] sm:text-[2rem]">
+          <h1 className="mt-3 break-words text-[30px] font-bold leading-[1.32] tracking-[-0.035em] text-[#111827] sm:text-[36px]">
             {news.title}
           </h1>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-[#f1f5f9] pb-4 text-xs text-[#6b7280]">
-            <span className="font-medium">{news.source}</span>
-            <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
-            <Clock className="h-3.5 w-3.5" />
-            <span>{formatDate(news.publishedAt)}</span>
+          {news.description ? (
+            <p className="mt-4 text-[17px] leading-8 text-[#5b6573]">{news.description}</p>
+          ) : null}
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-5 text-sm text-[#6b7280]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-[#4b5563]">{news.source}</span>
+              <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
+              <Clock className="h-4 w-4" />
+              <span>{formatDate(news.publishedAt)}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4b5563] hover:bg-[#e9eef5]"
+                title="공유하기"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleBookmark}
+                disabled={addBookmark.isPending}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4b5563] hover:bg-[#e9eef5] disabled:opacity-50"
+                title="북마크"
+              >
+                <Bookmark className="h-4 w-4" />
+              </button>
+              <a
+                href={news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4b5563] hover:bg-[#e9eef5]"
+                title="원본 보기"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
           </div>
 
-          <div className="mt-5 text-[15px] leading-7 text-[#374151]">
+          <div className="mt-6 text-[16px] leading-8 text-[#374151]">
             {bodyHtml ? (
-              <div
-                className="article-content break-words"
-                dangerouslySetInnerHTML={{ __html: bodyHtml }}
-              />
+              <div className="article-content break-words" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
             ) : bodyText ? (
               <div className="article-content break-words whitespace-pre-wrap">{bodyText}</div>
             ) : (
               <p>표시할 본문이 없습니다. 원본 보기에서 전체 기사를 확인해 주세요.</p>
             )}
           </div>
-
-          <a
-            href={news.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
-          >
-            <span>원본 보기</span>
-            <ExternalLink className="h-4 w-4" />
-          </a>
         </div>
       </article>
     </div>

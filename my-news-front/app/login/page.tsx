@@ -42,23 +42,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-[960px] gap-4 py-6 md:grid-cols-[1.1fr_1fr]">
-      <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,#1b64da_0%,#3182f6_60%,#6ba6ff_100%)] p-8 text-white">
+    <div className="mx-auto grid w-full max-w-[980px] gap-4 md:grid-cols-[1.12fr_1fr]">
+      <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,#1b64da_0%,#3182f6_60%,#6ba6ff_100%)] p-8 text-white shadow-[0_20px_60px_rgba(27,100,218,0.22)]">
         <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/20 blur-2xl" />
         <div className="absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="relative">
-          <p className="text-sm font-medium text-white/80">MY NEWS</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">빠르게 보는 오늘 뉴스</h1>
-          <p className="mt-3 max-w-sm text-sm leading-6 text-white/85">
+          <p className="text-sm font-medium text-white/80">MY NEWS ACCOUNT</p>
+          <h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">빠르게 보는 오늘 뉴스</h1>
+          <p className="mt-4 max-w-sm text-sm leading-7 text-white/85">
             로그인 후 북마크와 개인화 뉴스, 위치 기반 날씨를 한 화면에서 확인하세요.
           </p>
         </div>
       </section>
 
-      <section className="rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-[var(--line)] sm:p-8">
+      <section className="toss-card p-6 sm:p-8">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold tracking-[-0.02em] text-[#111827]">로그인</h2>
-          <p className="mt-1 text-sm text-[#6b7280]">계정 정보를 입력해 주세요.</p>
+          <h2 className="text-[30px] font-bold tracking-[-0.03em] text-[#111827]">로그인</h2>
+          <p className="mt-2 text-sm text-[#6b7280]">계정 정보를 입력해 주세요.</p>
         </div>
 
         {error && (

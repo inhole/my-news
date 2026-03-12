@@ -34,7 +34,7 @@ export function NewsList({ category, search }: NewsListProps) {
           fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (observerRef.current) {
@@ -69,15 +69,19 @@ export function NewsList({ category, search }: NewsListProps) {
   if (allNews.length === 0) {
     return (
       <EmptyState
-        title="뉴스가 없습니다"
-        message="아직 등록된 뉴스가 없습니다."
+        title={search ? '검색 결과가 없습니다' : '뉴스가 없습니다'}
+        message={
+          search
+            ? '다른 검색어로 다시 시도해 보세요.'
+            : '아직 등록된 뉴스가 없습니다.'
+        }
         icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
       />
     );
   }
 
   return (
-    <div className="news-list-wrap space-y-2 pb-4">
+    <div className="news-list-wrap space-y-3 pb-4">
       <div className="news-list-grid grid lg:grid-cols-2">
         {allNews.map((news) => (
           <NewsCard key={news.id} news={news} />

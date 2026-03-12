@@ -27,7 +27,7 @@ function formatRelativeTime(dateString: string) {
 
 function FallbackThumb({ title }: { title: string }) {
   return (
-    <div className="absolute inset-0 flex items-end bg-[linear-gradient(135deg,#e0ecff_0%,#c6dcff_100%)] p-3">
+    <div className="absolute inset-0 flex items-end bg-[linear-gradient(145deg,#d8e8ff_0%,#bdd4ff_100%)] p-3">
       <p className="line-clamp-2 text-xs font-semibold leading-5 text-[#1f2937]">{title}</p>
     </div>
   );
@@ -49,44 +49,56 @@ export function NewsCard({ news }: NewsCardProps) {
 
   return (
     <Link href={`/news/${news.id}`} className="block">
-      <article className="news-item-shell news-item-row relative flex rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)] transition hover:-translate-y-0.5 hover:shadow-md">
-        <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={handleBookmarkClick}
-            disabled={addBookmark.isPending}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef] disabled:opacity-50"
-            aria-label="북마크"
-            title="북마크"
-          >
-            <Bookmark className="h-2.5 w-2.5" />
-          </button>
-
-          <a
-            href={news.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(event) => event.stopPropagation()}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef]"
-            aria-label="원본 보기"
-            title="원본 보기"
-          >
-            <ExternalLink className="h-2.5 w-2.5" />
-          </a>
-        </div>
-
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#e8f1ff] sm:h-24 sm:w-24">
+      <article className="news-item-shell toss-card news-item-row relative flex overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[22px] bg-[#e8f1ff] sm:h-28 sm:w-28">
           {news.imageUrl ? (
-            <Image src={news.imageUrl} alt={news.title} fill sizes="96px" className="object-cover" />
+            <Image src={news.imageUrl} alt={news.title} fill sizes="112px" className="object-cover" />
           ) : (
             <FallbackThumb title={news.title} />
           )}
         </div>
 
-        <div className="min-w-0 flex-1 pb-10 pr-1">
-          <h3 className="line-clamp-2 text-[15px] font-semibold leading-6 text-[var(--text)]">{news.title}</h3>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-            <span>{news.source}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-[var(--primary-strong)]">{news.category.name}</p>
+              <h3 className="mt-1 line-clamp-2 text-[17px] font-bold leading-6 text-[var(--text)]">
+                {news.title}
+              </h3>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={handleBookmarkClick}
+                disabled={addBookmark.isPending}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4e5968] transition hover:bg-[#e9eef5] disabled:opacity-50"
+                aria-label="북마크"
+                title="북마크"
+              >
+                <Bookmark className="h-3.5 w-3.5" />
+              </button>
+
+              <a
+                href={news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4e5968] transition hover:bg-[#e9eef5]"
+                aria-label="원본 보기"
+                title="원본 보기"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          </div>
+
+          {news.description ? (
+            <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#5b6573]">{news.description}</p>
+          ) : null}
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+            <span className="font-medium">{news.source}</span>
             <span className="h-1 w-1 rounded-full bg-[#d1d6db]" />
             <Clock className="h-3.5 w-3.5" />
             <span>{formatRelativeTime(news.publishedAt)}</span>

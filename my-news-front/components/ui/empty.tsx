@@ -14,9 +14,9 @@ export function EmptyState({
   icon,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-3xl bg-white px-5 py-12 text-center shadow-sm ring-1 ring-[var(--line)]">
+    <div className="toss-card flex flex-col items-center justify-center px-6 py-14 text-center">
       {icon || <FileX className="mb-4 h-10 w-10 text-[#9ca3af]" />}
-      <h3 className="text-lg font-semibold text-[#111827]">{title}</h3>
+      <h3 className="text-lg font-bold text-[#111827]">{title}</h3>
       <p className="mt-2 max-w-md text-sm leading-6 text-[#6b7280]">{message}</p>
     </div>
   );

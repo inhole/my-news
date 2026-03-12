@@ -47,8 +47,7 @@ function getWeatherIcon(code: number, className = 'h-6 w-6') {
 
 function formatHourLabel(time: string): string {
   const date = new Date(time);
-  const hours = date.getHours();
-  return `${hours.toString().padStart(2, '0')}시`;
+  return `${date.getHours().toString().padStart(2, '0')}시`;
 }
 
 function formatDayLabel(dateString: string, index: number): string {
@@ -77,7 +76,7 @@ export function WeatherWidget() {
 
     const requestCurrentPosition = () => {
       if (!('geolocation' in navigator)) {
-        setGangnamFallback('위치 정보를 지원하지 않아 서울 강남 기준 날씨를 표시합니다.');
+        setGangnamFallback('위치 정보를 사용할 수 없어 서울 강남 기준 날씨를 표시합니다.');
         return;
       }
 
@@ -89,7 +88,7 @@ export function WeatherWidget() {
           setGeoNotice('');
         },
         () => setGangnamFallback('위치 권한이 없어 서울 강남 기준 날씨를 표시합니다.'),
-        { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 8000 }
+        { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 8000 },
       );
     };
 
@@ -125,10 +124,10 @@ export function WeatherWidget() {
 
   if (isLoading || !weather) {
     return (
-      <section className="item-inner-pad rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+      <section className="toss-card h-[360px] p-6">
         <p className="text-sm font-semibold text-[#6b7280]">현재 날씨</p>
-        <div className="mt-3 flex items-center gap-3">
-          <Cloud className="h-6 w-6 animate-pulse text-[var(--primary)]" />
+        <div className="mt-5 flex items-center gap-3">
+          <Cloud className="h-7 w-7 animate-pulse text-[var(--primary)]" />
           <p className="text-sm text-[#6b7280]">날씨 정보를 불러오는 중입니다.</p>
         </div>
       </section>
@@ -136,45 +135,51 @@ export function WeatherWidget() {
   }
 
   return (
-    <section className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)]">
-      <div className="item-inner-pad bg-[linear-gradient(135deg,#3182f6_0%,#4f9cff_100%)] text-white">
+    <section className="toss-card overflow-hidden">
+      <div className="bg-[linear-gradient(145deg,#1b64da_0%,#3182f6_65%,#68a5ff_100%)] px-6 py-6 text-white">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-white/80">현재 날씨</p>
             <p className="mt-1 text-xs font-medium text-white/90">{locationLabel}</p>
-            <p className="mt-1 text-4xl font-bold">{Math.round(weather.temperature)}°</p>
-            <p className="mt-1 text-sm text-white/90">{getWeatherDescription(weather.weatherCode)}</p>
-            {geoNotice ? <p className="mt-2 text-xs text-white/90">{geoNotice}</p> : null}
+            <p className="mt-2 text-5xl font-bold tracking-[-0.04em]">{Math.round(weather.temperature)}°</p>
+            <p className="mt-2 text-sm text-white/90">{getWeatherDescription(weather.weatherCode)}</p>
+            {geoNotice ? <p className="mt-3 text-xs text-white/85">{geoNotice}</p> : null}
           </div>
-          <div className="rounded-lg bg-white/20 p-2">{getWeatherIcon(weather.weatherCode, 'h-8 w-8')}</div>
+          <div className="rounded-[20px] bg-white/18 p-3">{getWeatherIcon(weather.weatherCode, 'h-9 w-9')}</div>
         </div>
       </div>
 
-      <div className="item-inner-pad space-y-4">
+      <div className="space-y-5 px-5 py-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9ca3af]">시간별</p>
-          <div className="scrollbar-hide mt-2 flex gap-2 overflow-x-auto pb-1">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9ca3af]">Hourly</p>
+          <div className="scrollbar-hide mt-3 flex gap-2 overflow-x-auto pb-1">
             {weather.hourly.slice(0, 12).map((hour) => (
-              <div key={hour.time} className="item-inner-pad min-w-[72px] rounded-lg bg-[#f3f4f6] text-center">
+              <div
+                key={hour.time}
+                className="min-w-[76px] rounded-[20px] bg-[var(--surface-soft)] px-3 py-3 text-center"
+              >
                 <p className="text-[11px] font-medium text-[#6b7280]">{formatHourLabel(hour.time)}</p>
-                <div className="mt-1 flex justify-center">{getWeatherIcon(hour.weatherCode, 'h-4 w-4')}</div>
-                <p className="mt-1 text-sm font-semibold text-[#111827]">{Math.round(hour.temperature)}°</p>
+                <div className="mt-2 flex justify-center">{getWeatherIcon(hour.weatherCode, 'h-4 w-4')}</div>
+                <p className="mt-2 text-sm font-bold text-[#111827]">{Math.round(hour.temperature)}°</p>
               </div>
             ))}
           </div>
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9ca3af]">주간 예보</p>
-          <div className="mt-2 space-y-2">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9ca3af]">Weekly</p>
+          <div className="mt-3 space-y-2">
             {weather.daily.slice(0, 7).map((day, index) => (
-              <div key={day.date} className="item-inner-pad flex items-center justify-between rounded-lg bg-[#f9fafb]">
-                <div className="flex items-center gap-2">
-                  <span className="w-9 text-sm font-semibold text-[#374151]">{formatDayLabel(day.date, index)}</span>
+              <div
+                key={day.date}
+                className="flex items-center justify-between rounded-[20px] bg-[var(--surface-soft)] px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-8 text-sm font-bold text-[#374151]">{formatDayLabel(day.date, index)}</span>
                   {getWeatherIcon(day.weatherCode, 'h-4 w-4')}
-                  <span className="text-xs text-[#9ca3af]">{getWeatherDescription(day.weatherCode)}</span>
+                  <span className="text-xs text-[#8b95a1]">{getWeatherDescription(day.weatherCode)}</span>
                 </div>
-                <p className="text-sm font-medium text-[#111827]">
+                <p className="text-sm font-semibold text-[#111827]">
                   {Math.round(day.tempMax)}° / {Math.round(day.tempMin)}°
                 </p>
               </div>

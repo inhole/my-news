@@ -8,15 +8,22 @@ interface CategoryTabsProps {
   defaultLabel?: string;
 }
 
-export function CategoryTabs({ selected, onChange, defaultLabel = '전체' }: CategoryTabsProps) {
+export function CategoryTabs({
+  selected,
+  onChange,
+  defaultLabel = '전체',
+}: CategoryTabsProps) {
   const { data: categories, isLoading } = useCategories();
 
   if (isLoading) {
     return (
-      <div className="scrollbar-hide overflow-x-auto overflow-y-hidden px-2 sm:px-4">
-        <div className="flex min-w-max items-end gap-6 pr-2">
+      <div className="scrollbar-hide overflow-x-auto overflow-y-hidden py-2">
+        <div className="flex min-w-max gap-2 pr-2">
           {[...Array(6)].map((_, index) => (
-            <div key={index} className="h-10 w-16 animate-pulse border-b-2 border-transparent bg-[#eef2f6]" />
+            <div
+              key={index}
+              className="h-10 w-20 animate-pulse rounded-full bg-[var(--surface-soft)]"
+            />
           ))}
         </div>
       </div>
@@ -26,8 +33,8 @@ export function CategoryTabs({ selected, onChange, defaultLabel = '전체' }: Ca
   const items = [{ id: 'all', slug: '', name: defaultLabel }, ...(categories ?? [])];
 
   return (
-    <div className="scrollbar-hide overflow-x-auto overflow-y-hidden px-2 sm:px-4">
-      <div className="flex min-w-max touch-pan-x items-end gap-6 pr-2">
+    <div className="scrollbar-hide overflow-x-auto overflow-y-hidden py-2">
+      <div className="flex min-w-max touch-pan-x gap-2 pr-2">
         {items.map((item) => {
           const isActive = item.slug === (selected ?? '');
 
@@ -36,12 +43,11 @@ export function CategoryTabs({ selected, onChange, defaultLabel = '전체' }: Ca
               key={item.id}
               type="button"
               onClick={() => onChange(item.slug)}
-              className={`shrink-0 border-b-2 px-1 py-3 font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
                 isActive
-                  ? 'border-[var(--primary)] text-[var(--text)]'
-                  : 'border-transparent text-[#4e5968] hover:text-[var(--text)]'
+                  ? 'bg-[var(--primary-strong)] text-white shadow-[0_6px_18px_rgba(27,100,218,0.22)]'
+                  : 'bg-[var(--surface-soft)] text-[#4e5968] hover:bg-[#e9eef5]'
               }`}
-              style={{ fontSize: '19px', lineHeight: '28px' }}
             >
               {item.name}
             </button>
