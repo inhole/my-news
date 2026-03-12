@@ -98,10 +98,6 @@ export default function NewsDetailPage() {
             {news.title}
           </h1>
 
-          {news.description ? (
-            <p className="mt-4 text-[17px] leading-8 text-[#5b6573]">{news.description}</p>
-          ) : null}
-
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-5 text-sm text-[#6b7280]">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold text-[#4b5563]">{news.source}</span>

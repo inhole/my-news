@@ -17,24 +17,24 @@
   --success: #00a86b;
   --bottom-nav-height: 72px;
   --app-top-nav-offset: 0px;
-  --page-pad-x: 14px;
-  --page-pad-y: 16px;
+  --page-pad-x: 8px;
+  --page-pad-y: 10px;
   --news-list-pad-x: 0px;
   --news-list-pad-y: 2px;
-  --news-list-gap: 12px;
-  --news-item-gap: 16px;
-  --item-pad-x: 16px;
-  --item-pad-y: 16px;
+  --news-list-gap: 6px;
+  --news-item-gap: 10px;
+  --item-pad-x: 10px;
+  --item-pad-y: 10px;
   --radius-card: 28px;
   --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 @media (min-width: 640px) {
   :root {
-    --page-pad-x: 20px;
-    --page-pad-y: 20px;
-    --item-pad-x: 18px;
-    --item-pad-y: 18px;
+    --page-pad-x: 10px;
+    --page-pad-y: 10px;
+    --item-pad-x: 12px;
+    --item-pad-y: 12px;
   }
 }
 
@@ -98,11 +98,11 @@ body {
 }
 
 .section-pad {
-  padding: clamp(20px, 2.2vw, 28px);
+  padding: clamp(8px, 1vw, 12px);
 }
 
 .section-pad-sm {
-  padding: clamp(16px, 1.8vw, 22px);
+  padding: clamp(6px, 0.8vw, 10px);
 }
 
 .toss-pill {
