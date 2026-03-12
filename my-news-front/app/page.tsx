@@ -34,7 +34,7 @@ function HomeLoading() {
   return (
     <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
       <div className="toss-card h-[360px] animate-pulse bg-[#edf2f7]" />
-      <div className="toss-card p-5">
+      <div className="toss-card section-pad-sm">
         {[...Array(5)].map((_, index) => (
           <div key={index} className={`flex gap-4 py-4 ${index < 4 ? 'border-b border-[var(--line)]' : ''}`}>
             <div className="h-24 w-24 shrink-0 rounded-[22px] bg-[#edf2f7]" />
@@ -81,7 +81,7 @@ export default function Home() {
             {heroArticle ? (
               <Link
                 href={`/news/${heroArticle.id}`}
-                className="toss-card group relative overflow-hidden p-5 sm:p-6"
+                className="toss-card section-pad group relative overflow-hidden"
               >
                 <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(180deg,rgba(49,130,246,0.12),transparent)]" />
                 <div className="relative">
@@ -130,7 +130,7 @@ export default function Home() {
             ) : null}
           </section>
 
-          <section className="toss-card p-4 sm:p-5">
+          <section className="toss-card section-pad-sm">
             <div className="flex items-center justify-between px-1 pb-2">
               <div>
                 <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">

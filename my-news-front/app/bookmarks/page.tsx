@@ -54,7 +54,7 @@ export default function BookmarksPage() {
 
   return (
     <div className="mx-auto w-full max-w-[920px] space-y-4">
-      <section className="toss-card p-6">
+      <section className="toss-card section-pad">
         <div className="flex items-center gap-4">
           <div className="rounded-[20px] bg-[var(--primary-weak)] p-3">
             <BookmarkIcon className="h-6 w-6 text-[var(--primary-strong)]" />

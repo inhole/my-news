@@ -93,10 +93,6 @@ export function NewsCard({ news }: NewsCardProps) {
             </div>
           </div>
 
-          {news.description ? (
-            <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#5b6573]">{news.description}</p>
-          ) : null}
-
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
             <span className="font-medium">{news.source}</span>
             <span className="h-1 w-1 rounded-full bg-[#d1d6db]" />

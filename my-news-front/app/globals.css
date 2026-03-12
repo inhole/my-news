@@ -97,6 +97,14 @@ body {
   border-radius: calc(var(--radius-card) - 4px);
 }
 
+.section-pad {
+  padding: clamp(20px, 2.2vw, 28px);
+}
+
+.section-pad-sm {
+  padding: clamp(16px, 1.8vw, 22px);
+}
+
 .toss-pill {
   display: inline-flex;
   align-items: center;

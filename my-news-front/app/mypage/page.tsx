@@ -36,7 +36,7 @@ export default function MyPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 px-5 py-5 sm:grid-cols-2">
+        <div className="section-pad grid gap-3 sm:grid-cols-2">
           <div className="rounded-[24px] bg-[var(--surface-soft)] px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b95a1]">Status</p>
             <p className="mt-2 text-lg font-bold text-[#111827]">{isLoggedIn ? '인증 완료' : '로그인 필요'}</p>

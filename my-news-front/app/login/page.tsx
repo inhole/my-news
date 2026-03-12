@@ -55,7 +55,7 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section className="toss-card p-6 sm:p-8">
+      <section className="toss-card section-pad">
         <div className="mb-6">
           <h2 className="text-[30px] font-bold tracking-[-0.03em] text-[#111827]">로그인</h2>
           <p className="mt-2 text-sm text-[#6b7280]">계정 정보를 입력해 주세요.</p>

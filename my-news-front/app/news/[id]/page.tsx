@@ -91,7 +91,7 @@ export default function NewsDetailPage() {
           </div>
         )}
 
-        <div className="px-5 py-6 sm:px-8 sm:py-8">
+        <div className="section-pad">
           <p className="text-sm font-semibold text-[var(--primary-strong)]">{news.category.name}</p>
 
           <h1 className="mt-3 break-words text-[30px] font-bold leading-[1.32] tracking-[-0.035em] text-[#111827] sm:text-[36px]">

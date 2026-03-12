@@ -124,7 +124,7 @@ export function WeatherWidget() {
 
   if (isLoading || !weather) {
     return (
-      <section className="toss-card h-[360px] p-6">
+      <section className="toss-card section-pad h-[360px]">
         <p className="text-sm font-semibold text-[#6b7280]">현재 날씨</p>
         <div className="mt-5 flex items-center gap-3">
           <Cloud className="h-7 w-7 animate-pulse text-[var(--primary)]" />
@@ -136,7 +136,7 @@ export function WeatherWidget() {
 
   return (
     <section className="toss-card overflow-hidden">
-      <div className="bg-[linear-gradient(145deg,#1b64da_0%,#3182f6_65%,#68a5ff_100%)] px-6 py-6 text-white">
+      <div className="section-pad bg-[linear-gradient(145deg,#1b64da_0%,#3182f6_65%,#68a5ff_100%)] text-white">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-white/80">현재 날씨</p>
@@ -149,7 +149,7 @@ export function WeatherWidget() {
         </div>
       </div>
 
-      <div className="space-y-5 px-5 py-5">
+      <div className="section-pad space-y-5">
         <div>
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9ca3af]">Hourly</p>
           <div className="scrollbar-hide mt-3 flex gap-2 overflow-x-auto pb-1">
