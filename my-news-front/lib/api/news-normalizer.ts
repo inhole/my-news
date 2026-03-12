@@ -5,6 +5,7 @@ type ApiNews = {
   title: string;
   description: string | null;
   content?: string | null;
+  contentHtml?: string | null;
   url: string;
   imageUrl?: string | null;
   urlToImage?: string | null;
@@ -55,6 +56,7 @@ export function normalizeNews(news: ApiNews): News {
     title: news.title,
     description: news.description ?? null,
     content: news.content ?? null,
+    contentHtml: news.contentHtml ?? null,
     url: news.url,
     imageUrl: normalizeImageUrl(news.imageUrl ?? news.urlToImage),
     publishedAt: news.publishedAt,

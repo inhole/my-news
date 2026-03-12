@@ -5,6 +5,7 @@ export interface News {
   title: string;
   description: string | null;
   content?: string | null;
+  contentHtml?: string | null;
   url: string;
   imageUrl: string | null;
   publishedAt: string;

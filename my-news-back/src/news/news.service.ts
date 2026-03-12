@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { CheerioAPI, load } from 'cheerio';
+import { Cheerio, CheerioAPI, load } from 'cheerio';
+import type { AnyNode, Element } from 'domhandler';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 
 type NaverSort = 'sim' | 'date';
+type CheerioNode = Cheerio<AnyNode>;
 
 interface NaverNewsApiParams {
   query: string;
@@ -30,8 +32,14 @@ interface CrawledArticleMetadata {
   title: string | null;
   description: string | null;
   content: string | null;
+  contentHtml: string | null;
   imageUrl: string | null;
   source: string | null;
+}
+
+interface ContentBlock {
+  tag: string;
+  text: string;
 }
 
 @Injectable()
@@ -196,16 +204,23 @@ export class NewsService {
           select: {
             urlToImage: true,
             content: true,
+            contentHtml: true,
           },
         });
 
         const shouldEnrich =
-          !existingNews || !existingNews.urlToImage || !existingNews.content;
+          !existingNews ||
+          !existingNews.urlToImage ||
+          !existingNews.content ||
+          !existingNews.contentHtml;
         const crawledMetadata = shouldEnrich
           ? await this.fetchArticleMetadata(originalUrl, fallbackUrl)
           : null;
 
-        const resolvedTitle = this.preferReadableText(crawledMetadata?.title, title);
+        const resolvedTitle = this.preferReadableText(
+          crawledMetadata?.title,
+          title,
+        );
         const resolvedDescription = this.preferReadableText(
           crawledMetadata?.description,
           description,
@@ -214,6 +229,11 @@ export class NewsService {
           crawledMetadata?.content,
           resolvedDescription || description,
         );
+        const resolvedContentHtml =
+          crawledMetadata?.contentHtml ||
+          this.buildParagraphHtml(
+            resolvedContent || resolvedDescription || description,
+          );
         const resolvedSource = crawledMetadata?.source || source;
         const resolvedImageUrl =
           crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
@@ -224,6 +244,7 @@ export class NewsService {
             title: resolvedTitle,
             description: resolvedDescription,
             content: resolvedContent,
+            contentHtml: resolvedContentHtml,
             urlToImage: resolvedImageUrl,
             publishedAt,
             source: resolvedSource,
@@ -234,6 +255,7 @@ export class NewsService {
             title: resolvedTitle,
             description: resolvedDescription,
             content: resolvedContent,
+            contentHtml: resolvedContentHtml,
             url,
             urlToImage: resolvedImageUrl,
             publishedAt,
@@ -295,6 +317,7 @@ export class NewsService {
         if (
           metadata.imageUrl ||
           metadata.content ||
+          metadata.contentHtml ||
           metadata.description ||
           metadata.title
         ) {
@@ -311,6 +334,7 @@ export class NewsService {
       title: null,
       description: null,
       content: null,
+      contentHtml: null,
       imageUrl: null,
       source: primaryUrl ? this.extractSourceName(primaryUrl) : null,
     };
@@ -337,6 +361,7 @@ export class NewsService {
         title: null,
         description: null,
         content: null,
+        contentHtml: null,
         imageUrl: null,
         source: this.extractSourceName(url),
       };
@@ -374,12 +399,16 @@ export class NewsService {
           'meta[name="application-name"]',
         ]) || '',
       ) || this.extractSourceName(url);
-    const content = this.extractArticleContent($, description);
+    const contentData = this.extractArticleContent($, description);
 
     return {
       title: title || null,
       description: description || null,
-      content: content || description || null,
+      content: contentData.text || description || null,
+      contentHtml:
+        contentData.html ||
+        this.buildParagraphHtml(contentData.text || description) ||
+        null,
       imageUrl,
       source,
     };
@@ -388,7 +417,7 @@ export class NewsService {
   private extractArticleContent(
     $: CheerioAPI,
     fallbackDescription: string,
-  ): string | null {
+  ): { text: string | null; html: string | null } {
     const selectors = [
       '[itemprop="articleBody"]',
       'article',
@@ -406,44 +435,139 @@ export class NewsService {
         continue;
       }
 
-      const paragraphs = container
-        .find('p')
-        .toArray()
-        .map((element) => this.normalizeText($(element).text()))
-        .filter((text) => text.length > 30);
+      const contentData = this.extractContentFromContainer(
+        container,
+        fallbackDescription,
+      );
 
-      const mergedParagraphs = this.uniqueParagraphs(paragraphs);
-      if (mergedParagraphs.length > 0) {
-        return this.preferReadableText(
-          mergedParagraphs.join('\n\n'),
-          fallbackDescription,
-        ).slice(0, 5000);
-      }
-
-      const fallbackText = this.normalizeText(container.text());
-      if (fallbackText.length > 120) {
-        return this.preferReadableText(fallbackText, fallbackDescription).slice(
-          0,
-          5000,
-        );
+      if (contentData.text || contentData.html) {
+        return contentData;
       }
     }
 
-    const bodyParagraphs = this.uniqueParagraphs(
-      $('body p')
+    const bodyContentData = this.extractContentFromElements(
+      $('body p, body h1, body h2, body h3, body h4, body li, body blockquote')
         .toArray()
-        .map((element) => this.normalizeText($(element).text()))
-        .filter((text) => text.length > 30),
+        .map((element) => $(element)),
+      fallbackDescription,
     );
 
-    if (bodyParagraphs.length > 0) {
-      return this.preferReadableText(
-        bodyParagraphs.join('\n\n'),
-        fallbackDescription,
-      ).slice(0, 5000);
+    if (bodyContentData.text || bodyContentData.html) {
+      return bodyContentData;
     }
 
-    return this.preferReadableText(fallbackDescription, '') || null;
+    const fallbackText = this.preferReadableText(fallbackDescription, '') || null;
+    return {
+      text: fallbackText,
+      html: this.buildParagraphHtml(fallbackText),
+    };
+  }
+
+  private extractContentFromContainer(
+    container: CheerioNode,
+    fallbackDescription: string,
+  ): { text: string | null; html: string | null } {
+    const containerHtml = container.html();
+
+    if (!containerHtml) {
+      return { text: null, html: null };
+    }
+
+    const containerApi = load(`<article>${containerHtml}</article>`);
+    const clonedContainer = containerApi('article').first();
+
+    clonedContainer
+      .find(
+        'script, style, iframe, form, button, input, .reporter_area, .media_end_head_journalist, .copyright, .copyright_text, .link_news, .promotion, .related, .ad, .advertisement, .subscribe',
+      )
+      .remove();
+
+    const richContent = this.extractContentFromElements(
+      clonedContainer
+        .find('p, h1, h2, h3, h4, li, blockquote')
+        .toArray()
+        .map((element) => containerApi(element)),
+      fallbackDescription,
+    );
+
+    if (richContent.text || richContent.html) {
+      return richContent;
+    }
+
+    const fallbackText = this.normalizeText(clonedContainer.text());
+    if (fallbackText.length > 120) {
+      const text = this.preferReadableText(fallbackText, fallbackDescription);
+      return {
+        text,
+        html: this.buildParagraphHtml(text),
+      };
+    }
+
+    return { text: null, html: null };
+  }
+
+  private extractContentFromElements(
+    elements: CheerioNode[],
+    fallbackDescription: string,
+  ): { text: string | null; html: string | null } {
+    const blocks = this.uniqueContentBlocks(
+      elements
+        .map((element) => this.toContentBlock(element))
+        .filter((block): block is ContentBlock => Boolean(block)),
+    );
+
+    if (blocks.length === 0) {
+      return { text: null, html: null };
+    }
+
+    const text = this.preferReadableText(
+      blocks.map((block) => block.text).join('\n\n'),
+      fallbackDescription,
+    );
+
+    return {
+      text,
+      html: blocks
+        .map((block) => this.renderContentBlock(block.tag, block.text))
+        .join(''),
+    };
+  }
+
+  private toContentBlock(element: CheerioNode): ContentBlock | null {
+    const node = element.get(0) as Element | undefined;
+    const tagName = (node?.tagName || 'p').toLowerCase();
+    const normalizedTag = ['h1', 'h2', 'h3', 'h4', 'li', 'blockquote'].includes(
+      tagName,
+    )
+      ? tagName
+      : 'p';
+    const text = this.normalizeText(element.text());
+
+    if (text.length < 20) {
+      return null;
+    }
+
+    if (this.isLikelyBoilerplateText(text)) {
+      return null;
+    }
+
+    return {
+      tag: normalizedTag,
+      text,
+    };
+  }
+
+  private uniqueContentBlocks(blocks: ContentBlock[]): ContentBlock[] {
+    const seen = new Set<string>();
+
+    return blocks.filter((block) => {
+      if (seen.has(block.text)) {
+        return false;
+      }
+
+      seen.add(block.text);
+      return true;
+    });
   }
 
   private uniqueParagraphs(paragraphs: string[]): string[] {
@@ -456,6 +580,41 @@ export class NewsService {
       seen.add(paragraph);
       return true;
     });
+  }
+
+  private renderContentBlock(tag: string, text: string): string {
+    const escapedText = this.escapeHtml(text).replace(/\n/g, '<br />');
+
+    if (tag === 'blockquote') {
+      return `<blockquote><p>${escapedText}</p></blockquote>`;
+    }
+
+    if (tag.startsWith('h')) {
+      return `<${tag}>${escapedText}</${tag}>`;
+    }
+
+    return `<p>${escapedText}</p>`;
+  }
+
+  private buildParagraphHtml(text?: string | null): string | null {
+    if (!text) {
+      return null;
+    }
+
+    const paragraphs = this.uniqueParagraphs(
+      text
+        .split(/\n{2,}/)
+        .map((paragraph) => this.normalizeText(paragraph))
+        .filter(Boolean),
+    );
+
+    if (paragraphs.length === 0) {
+      return null;
+    }
+
+    return paragraphs
+      .map((paragraph) => `<p>${this.escapeHtml(paragraph)}</p>`)
+      .join('');
   }
 
   private readMetaContent($: CheerioAPI, selectors: string[]): string | null {
@@ -492,7 +651,11 @@ export class NewsService {
   private normalizeText(value?: string): string {
     if (!value) return '';
 
-    const withoutTags = value.replace(/<[^>]*>/g, ' ');
+    const withLineBreaks = value
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+      .replace(/<br\s*\/?>/gi, '\n');
+    const withoutTags = withLineBreaks.replace(/<[^>]*>/g, ' ');
+
     return withoutTags
       .replace(/&quot;/g, '"')
       .replace(/&apos;/g, "'")
@@ -502,7 +665,11 @@ export class NewsService {
       .replace(/&#39;/g, "'")
       .replace(/&#x2F;/g, '/')
       .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(/\r\n?/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]{2,}/g, ' ')
       .trim();
   }
 
@@ -513,12 +680,24 @@ export class NewsService {
     if (
       normalizedPrimary &&
       !this.isLikelyCorruptedText(normalizedPrimary) &&
-      normalizedPrimary.length >= Math.min(10, Math.max(1, normalizedFallback.length))
+      normalizedPrimary.length >= Math.min(
+        10,
+        Math.max(1, normalizedFallback.length),
+      )
     ) {
       return normalizedPrimary;
     }
 
     return normalizedFallback || normalizedPrimary;
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   private isLikelyCorruptedText(text: string): boolean {
@@ -542,6 +721,20 @@ export class NewsService {
     }
 
     return false;
+  }
+
+  private isLikelyBoilerplateText(text: string): boolean {
+    const normalized = text.replace(/\s+/g, ' ').trim();
+
+    return [
+      '무단 전재 및 재배포 금지',
+      '저작권자',
+      '기사제보',
+      '기자',
+      '구독',
+      '좋아요',
+      '댓글',
+    ].some((keyword) => normalized.includes(keyword));
   }
 
   private extractSourceName(url: string): string {

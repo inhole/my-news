@@ -55,11 +55,11 @@ export function NewsCard({ news }: NewsCardProps) {
             type="button"
             onClick={handleBookmarkClick}
             disabled={addBookmark.isPending}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef] disabled:opacity-50"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef] disabled:opacity-50"
             aria-label="북마크"
             title="북마크"
           >
-            <Bookmark className="h-4 w-4" />
+            <Bookmark className="h-2.5 w-2.5" />
           </button>
 
           <a
@@ -67,11 +67,11 @@ export function NewsCard({ news }: NewsCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(event) => event.stopPropagation()}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef]"
-            aria-label="원문 보기"
-            title="원문 보기"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-[#f2f4f6] text-[#4e5968] transition hover:bg-[#e9ecef]"
+            aria-label="원본 보기"
+            title="원본 보기"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-2.5 w-2.5" />
           </a>
         </div>
 

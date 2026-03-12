@@ -90,3 +90,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 - Home weather now checks geolocation permission state before requesting current position.
 - If location permission is denied, unavailable, or unsupported, weather falls back to default coordinates for Gangnam, Seoul (`37.4979`, `127.0276`).
 - The weather card shows whether data is based on `내 위치 기준` or `서울 강남 기준`.
+## 2026-03-12 News Detail Content Update
+
+- News detail now uses the same category navigation style as the news list and links back into `/news?category=<slug>`.
+- Bookmark and original-link icons on list cards were reduced to a smaller visual size.
+- The backend now stores article body in both plain text (`content`) and HTML (`contentHtml`) so detail pages can render preserved paragraphs and line breaks.
+- Naver News Search API still provides metadata-oriented fields such as title, description, and links, so full body HTML is collected by crawling the original article page after the API response is received.

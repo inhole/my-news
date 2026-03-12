@@ -3,7 +3,8 @@
 import type { AxiosError } from 'axios';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Bookmark, Clock, ExternalLink, Share2 } from 'lucide-react';
+import { Bookmark, Clock, ExternalLink, Share2 } from 'lucide-react';
+import { CategoryTabs } from '@/components/news/category-tabs';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingPage } from '@/components/ui/loading';
 import { useAddBookmark, useNewsDetail } from '@/hooks/use-queries';
@@ -27,7 +28,7 @@ export default function NewsDetailPage() {
       const axiosError = err as AxiosError<ApiErrorResponse>;
 
       if (axiosError.response?.status === 409) {
-        alert('이미 북마크에 추가된 기사입니다.');
+        alert('이미 북마크에 추가한 기사입니다.');
         return;
       }
 
@@ -51,6 +52,15 @@ export default function NewsDetailPage() {
 
     await navigator.clipboard.writeText(window.location.href);
     alert('링크를 복사했습니다.');
+  };
+
+  const handleCategoryChange = (categorySlug: string) => {
+    if (!categorySlug) {
+      router.push('/news');
+      return;
+    }
+
+    router.push(`/news?category=${encodeURIComponent(categorySlug)}`);
   };
 
   const formatDate = (dateString: string) =>
@@ -80,28 +90,21 @@ export default function NewsDetailPage() {
     return <ErrorMessage title="뉴스를 찾을 수 없습니다" />;
   }
 
+  const bodyHtml = news.contentHtml?.trim() || '';
   const bodyText = news.content?.trim() || news.description?.trim() || '';
-  const normalizedBody = bodyText
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\r\n?/g, '\n')
-    .trim();
 
   return (
-    <div className="page-content">
-      <article className="rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#f1f5f9] bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-2 rounded-xl px-2 py-1 text-sm font-semibold text-[#374151] hover:bg-[#f3f4f6]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>뒤로</span>
-        </button>
+    <div className="page-content space-y-3">
+      <div className="sticky top-0 z-40 -mx-4 sm:-mx-6">
+        <div className="border-b border-[var(--line)] bg-white/95 backdrop-blur">
+          <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6">
+            <CategoryTabs selected={news.category.slug} onChange={handleCategoryChange} />
+          </div>
+        </div>
+      </div>
 
-        <div className="flex items-center gap-2">
+      <article className="rounded-3xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+        <div className="flex items-center justify-end gap-2 border-b border-[#f1f5f9] px-4 py-3 sm:px-5">
           <button
             type="button"
             onClick={handleShare}
@@ -120,7 +123,6 @@ export default function NewsDetailPage() {
             <Bookmark className="h-4 w-4" />
           </button>
         </div>
-      </div>
 
         {news.imageUrl && (
           <div className="relative h-[220px] w-full bg-[#e5edf8] sm:h-[320px]">
@@ -145,10 +147,15 @@ export default function NewsDetailPage() {
           </div>
 
           <div className="mt-5 text-[15px] leading-7 text-[#374151]">
-            {normalizedBody ? (
-              <p className="break-words whitespace-pre-wrap">{normalizedBody}</p>
+            {bodyHtml ? (
+              <div
+                className="article-content break-words"
+                dangerouslySetInnerHTML={{ __html: bodyHtml }}
+              />
+            ) : bodyText ? (
+              <div className="article-content break-words whitespace-pre-wrap">{bodyText}</div>
             ) : (
-              <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
+              <p>표시할 본문이 없습니다. 원본 보기에서 전체 기사를 확인해 주세요.</p>
             )}
           </div>
 
@@ -158,7 +165,7 @@ export default function NewsDetailPage() {
             rel="noopener noreferrer"
             className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
           >
-            <span>원문 보기</span>
+            <span>원본 보기</span>
             <ExternalLink className="h-4 w-4" />
           </a>
         </div>

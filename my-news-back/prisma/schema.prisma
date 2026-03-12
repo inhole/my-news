@@ -35,6 +35,7 @@ model News {
   title       String
   description String?
   content     String?
+  contentHtml String?
   url         String     @unique
   urlToImage  String?
   publishedAt DateTime
