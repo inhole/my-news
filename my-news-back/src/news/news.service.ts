@@ -343,9 +343,10 @@ export class NewsService {
   private async fetchArticleMetadataFromUrl(
     url: string,
   ): Promise<CrawledArticleMetadata> {
-    const response = await axios.get<string>(url, {
+    const response = await axios.get<ArrayBuffer>(url, {
       timeout: 8000,
       maxRedirects: 5,
+      responseType: 'arraybuffer',
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
@@ -355,7 +356,7 @@ export class NewsService {
       },
     });
 
-    const html = typeof response.data === 'string' ? response.data : '';
+    const html = this.decodeHtmlResponse(response.data, response.headers['content-type']);
     if (!html) {
       return {
         title: null,
@@ -646,6 +647,47 @@ export class NewsService {
     } catch {
       return null;
     }
+  }
+
+  private decodeHtmlResponse(
+    responseData: ArrayBuffer,
+    contentType?: string,
+  ): string {
+    const buffer = Buffer.from(responseData);
+    if (buffer.length === 0) {
+      return '';
+    }
+
+    const asciiHead = buffer
+      .subarray(0, Math.min(buffer.length, 2048))
+      .toString('ascii');
+    const charset =
+      this.extractCharset(contentType) ||
+      this.extractCharset(asciiHead) ||
+      'utf-8';
+
+    try {
+      return new TextDecoder(charset).decode(buffer);
+    } catch {
+      try {
+        return new TextDecoder('utf-8').decode(buffer);
+      } catch {
+        return buffer.toString('utf8');
+      }
+    }
+  }
+
+  private extractCharset(value?: string): string | null {
+    if (!value) {
+      return null;
+    }
+
+    const match = value.match(/charset\s*=\s*["']?\s*([^"';\s>]+)/i);
+    if (!match?.[1]) {
+      return null;
+    }
+
+    return match[1].trim().toLowerCase();
   }
 
   private normalizeText(value?: string): string {
