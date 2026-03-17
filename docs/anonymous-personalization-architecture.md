@@ -2,41 +2,43 @@
 
 ## 목표
 
-`My News`를 로그인 없이도 개인화가 가능한 모바일 중심 PWA로 운영합니다.  
-개인화 기준은 계정이 아니라 브라우저 단위의 익명 프로필입니다.
+`My News`를 로그인 없이도 개인화가 가능한 모바일 중심 PWA로 운영합니다.
+개인화 데이터는 계정이 아니라 브라우저 범위의 익명 프로필에 저장합니다.
 
-## 핵심 원칙
+## 원칙
 
 1. 모든 개인화 데이터는 사용자 브라우저에 저장합니다.
-2. 홈 화면 탭은 공통 상단 nav에서 `날씨`, `헤드라인`, `실검`, `맞춤 뉴스`로 제공합니다.
-3. 맞춤 뉴스는 카테고리 선호도, 키워드 선호도, 최근 조회 이력을 합산해 정렬합니다.
-4. 기사 카드에는 AI 3줄 요약을 우선 노출하고, OpenAI가 없으면 추출형 요약으로 폴백합니다.
-5. 로그인, 관리자 페이지, 복잡한 운영 액션은 현재 범위에서 제외합니다.
+2. 홈 화면은 공통 상단 탭에서 `날씨`, `헤드라인`, `실시간`, `맞춤 뉴스`를 제공합니다.
+3. 맞춤 뉴스는 카테고리 선호, 키워드 선호, 최근 조회 이력을 합산해 정렬합니다.
+4. 기사 카드는 AI 3줄 요약을 우선 노출하고, OpenAI 키가 없으면 추출형 요약으로 대체합니다.
+5. 관리자용 개인화 운영 화면은 현재 범위에서 제외합니다.
 
 ## 홈 화면 구조
 
 ### 1. 날씨 탭
 
-- 위치 기반 현재/시간별/주간 날씨만 표시
+- 현재 위치를 간략 라벨로 표시합니다.
+- 현재, 시간별, 주간 날씨를 표시합니다.
+- 현재 날씨 요약에 강수량, 일출, 일몰, 습도, PM10/PM2.5 미세먼지를 포함합니다.
+- 주간 예보에 `오늘`, `n월 n일`, 일별 강수량을 표시합니다.
 
 ### 2. 헤드라인 탭
 
-- 오늘의 헤드라인 1건 표시
-- 최신 뉴스 브리핑 표시
+- 오늘의 헤드라인 1건을 표시합니다.
+- 최신 뉴스 브리프를 함께 제공합니다.
 
-### 3. 실검 탭
+### 3. 실시간 탭
 
-- 수집 기사 제목과 설명에서 반복 빈도가 높은 키워드 집계
-- 키워드별 관련 기사 진입 링크 제공
+- 수집 기사 제목과 설명에서 반복 빈도가 높은 검색어를 집계합니다.
+- 검색어별 연관 기사 진입 링크를 제공합니다.
 
 ### 4. 맞춤 뉴스 탭
 
-- 익명 프로필 기반으로 점수를 계산한 관심 뉴스 리스트 표시
-- 각 카드에 `AI Summary` 3줄 표시
-- 카드 밀도는 뉴스 리스트와 유사한 소형 썸네일 구조 사용
-- 최근 읽은 카테고리와 키워드를 기반으로 우선순위 재정렬
+- 익명 프로필 기반 점수로 관심 뉴스 리스트를 표시합니다.
+- 각 카드에 `AI Summary` 3줄을 제공합니다.
+- 리스트형 카드 UI로 빠른 탐색을 지원합니다.
 
-## 프로필 구조
+## 익명 프로필 구조
 
 저장 위치: `localStorage`
 
@@ -51,21 +53,19 @@
 
 ### 1. 뉴스 소비 신호 수집
 
-- 홈/맞춤 뉴스/뉴스 목록에서 기사 클릭
-- 기사 클릭 시 카테고리 점수 증가
-- 기사 제목/설명에서 추출한 키워드 점수 증가
-- 본 기사 ID는 `seenNewsIds`에 저장
+- 홈, 맞춤 뉴스, 뉴스 목록에서 기사 클릭
+- 클릭 시 카테고리 점수 증가
+- 제목/설명에서 추출한 키워드 점수 증가
+- 본 기사 ID를 `seenNewsIds`에 저장
 
 ### 2. 맞춤 뉴스 점수 계산
-
-예시 수식:
 
 ```text
 personalizedScore = categoryAffinity * 2 + keywordAffinity + freshness - seenPenalty
 ```
 
 - `categoryAffinity`: 선호 카테고리 누적 점수
-- `keywordAffinity`: 제목/설명 키워드 매칭 점수
+- `keywordAffinity`: 제목/설명 키워드 일치 점수
 - `freshness`: 최신 기사 가산점
 - `seenPenalty`: 이미 본 기사 감점
 
@@ -73,35 +73,31 @@ personalizedScore = categoryAffinity * 2 + keywordAffinity + freshness - seenPen
 
 - 입력: `title`, `description`, `content`, `categoryName`
 - 우선순위:
-  1. `OPENAI_API_KEY`가 있으면 OpenAI Chat Completions 호출
-  2. 없으면 설명/본문 기반 추출형 3줄 요약 생성
-- 출력: 카드당 3개의 짧은 한국어 문장
+1. `OPENAI_API_KEY`가 있으면 OpenAI Chat Completions 사용
+2. 없으면 설명/본문 기반 추출형 3줄 요약 생성
+- 출력: 카드용 3개의 짧은 문장
 
 ## 모듈 위치
 
 ### Frontend
 
 - `my-news-front/app/page.tsx`
-  - 홈 탭 구성과 맞춤 뉴스 렌더링
 - `my-news-front/app/api/ai/summarize/route.ts`
-  - AI 요약 API와 폴백 로직
+- `my-news-front/components/layout/weather-widget.tsx`
 - `my-news-front/lib/personalization/anonymous-profile.ts`
-  - 익명 프로필 생성/조회/저장
 - `my-news-front/lib/personalization/signal-tracker.ts`
-  - 클릭 기반 관심 신호 적재
 - `my-news-front/lib/personalization/personalized-feed.ts`
-  - 맞춤 뉴스 정렬
 
 ### Backend
 
 - `my-news-back/src/news/news.service.ts`
-  - 수집 기사 제공
 - `my-news-back/src/news/news-batch.service.ts`
-  - 배치 수집
+- `my-news-back/src/weather/weather.service.ts`
+- `my-news-back/src/weather/weather.controller.ts`
 
 ## 확장 방향
 
-1. 상세 페이지 체류 시간, 공유, 스크롤 깊이까지 신호 확장
-2. 기사 본문 임베딩 또는 토픽 추출 기반 정교한 추천
-3. 서버 캐시 또는 배치 요약 저장으로 요약 응답 속도 개선
-4. 맞춤 뉴스 탭에 이유 설명 문구 추가
+1. 상세 페이지 체류 시간, 공유, 스크롤 깊이 기반 선호 확장
+2. 본문 요약 품질 향상을 위한 서버 캐시 또는 배치 요약
+3. 맞춤 뉴스 카드에 추천 이유 문구 추가
+4. 위치 검색 결과에 최근 조회 지역 또는 즐겨찾기 도입

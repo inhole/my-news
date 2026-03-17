@@ -19,7 +19,7 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <QueryProvider>
-          <div className="flex h-dvh flex-col">
+          <div className="flex h-[100svh] flex-col overflow-hidden">
             <Suspense fallback={null}>
               <AppTopNav />
             </Suspense>

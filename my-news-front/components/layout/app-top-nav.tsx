@@ -30,7 +30,7 @@ export function AppTopNav() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [visible, setVisible] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastScrollTopRef = useRef(0);
@@ -72,12 +72,12 @@ export function AppTopNav() {
         const previousScrollTop = lastScrollTopRef.current;
 
         if (currentScrollTop <= 16) {
-          setVisible(true);
+          setCollapsed(false);
         } else if (currentScrollTop > previousScrollTop + 8) {
-          setVisible(false);
+          setCollapsed(true);
           setIsMenuOpen(false);
         } else if (currentScrollTop < previousScrollTop - 8) {
-          setVisible(true);
+          setCollapsed(false);
         }
 
         lastScrollTopRef.current = currentScrollTop;
@@ -92,7 +92,7 @@ export function AppTopNav() {
   useEffect(() => {
     const updateOffset = () => {
       const nextOffset =
-        visible && headerRef.current ? `${headerRef.current.offsetHeight}px` : '0px';
+        headerRef.current ? `${headerRef.current.offsetHeight}px` : '0px';
       document.documentElement.style.setProperty('--app-top-nav-offset', nextOffset);
     };
 
@@ -103,7 +103,7 @@ export function AppTopNav() {
       window.removeEventListener('resize', updateOffset);
       document.documentElement.style.setProperty('--app-top-nav-offset', '0px');
     };
-  }, [visible, isHomeRoute, isNewsRoute, selectedCategory, selectedHomeTab]);
+  }, [collapsed, isHomeRoute, isNewsRoute, selectedCategory, selectedHomeTab]);
 
   const handleCategoryChange = (categorySlug: string) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -141,13 +141,16 @@ export function AppTopNav() {
   return (
     <header
       ref={headerRef}
-      className={`fixed left-0 right-0 top-0 z-50 transition-transform duration-300 ease-out ${
-        visible ? 'translate-y-0' : '-translate-y-full'
-      }`}
+      className="fixed left-0 right-0 top-0 z-50 transition-[height] duration-300 ease-out"
     >
-      <div className="mx-auto w-full max-w-[980px] px-3 pt-3 sm:px-6">
-        <div className="toss-card overflow-visible rounded-[30px]">
-          <div className="flex items-center justify-between px-5 py-4 sm:px-6">
+      <div className="mx-auto w-full max-w-[980px] pt-3">
+        <div className="overflow-visible border-b border-[var(--line)] bg-[rgba(255,255,255,0.94)] shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+          <div
+            className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out ${
+              collapsed ? 'max-h-0 px-5 py-0 opacity-0 sm:px-6' : 'max-h-32 px-5 py-4 opacity-100 sm:px-6'
+            }`}
+          >
+            <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 My News
@@ -200,9 +203,10 @@ export function AppTopNav() {
               )}
             </div>
           </div>
+          </div>
 
           {isHomeRoute && (
-            <div className="border-t border-[var(--line)] px-3 pb-3 pt-2 sm:px-5">
+            <div className={`${collapsed ? '' : 'border-t'} border-[var(--line)] px-3 pb-3 pt-2 sm:px-5`}>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                 {homeTabs.map(({ id, label, icon: Icon }) => {
                   const active = selectedHomeTab === id;
@@ -228,7 +232,7 @@ export function AppTopNav() {
           )}
 
           {isNewsRoute && (
-            <div className="border-t border-[var(--line)] px-4 pb-3 sm:px-5">
+            <div className={`${collapsed ? '' : 'border-t'} border-[var(--line)] px-4 pb-3 pt-1 sm:px-5`}>
               <CategoryTabs selected={selectedCategory} onChange={handleCategoryChange} />
             </div>
           )}

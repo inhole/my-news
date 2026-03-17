@@ -15,6 +15,16 @@ export interface WeatherDailyPoint {
   tempMax: number;
   tempMin: number;
   weatherCode: number;
+  precipitation: number;
+  sunrise: string;
+  sunset: string;
+}
+
+export interface WeatherAirQuality {
+  pm10: number;
+  pm2_5: number;
+  usAqi: number;
+  europeanAqi: number;
 }
 
 export interface Weather {
@@ -26,8 +36,10 @@ export interface Weather {
   windSpeed: number;
   windDirection: number;
   humidity: number;
+  precipitation: number;
   timestamp: string;
   expiresAt: string;
+  airQuality: WeatherAirQuality;
   hourly: WeatherHourlyPoint[];
   daily: WeatherDailyPoint[];
 }
@@ -36,6 +48,7 @@ export interface Weather {
 export class WeatherService {
   private readonly logger = new Logger(WeatherService.name);
   private readonly openMeteoApiUrl: string;
+  private readonly openMeteoAirQualityApiUrl: string;
   private readonly cacheDurationMinutes = 10;
 
   constructor(
@@ -45,6 +58,9 @@ export class WeatherService {
     this.openMeteoApiUrl =
       this.configService.get<string>('OPEN_METEO_API_URL') ||
       'https://api.open-meteo.com/v1';
+    this.openMeteoAirQualityApiUrl =
+      this.configService.get<string>('OPEN_METEO_AIR_QUALITY_API_URL') ||
+      'https://air-quality-api.open-meteo.com/v1';
   }
 
   async getWeather(lat: number, lon: number): Promise<Weather> {
@@ -71,23 +87,38 @@ export class WeatherService {
     }
 
     try {
-      const response = await axios.get<OpenMeteoPayload>(
-        `${this.openMeteoApiUrl}/forecast`,
-        {
+      const [forecastResponse, airQualityResponse] = await Promise.all([
+        axios.get<OpenMeteoForecastPayload>(`${this.openMeteoApiUrl}/forecast`, {
           params: {
             latitude: roundedLat,
             longitude: roundedLon,
             current:
-              'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m',
+              'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation',
             hourly: 'temperature_2m,weather_code',
-            daily: 'weather_code,temperature_2m_max,temperature_2m_min',
+            daily:
+              'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset',
             forecast_days: 7,
             timezone: 'auto',
           },
-        },
-      );
+        }),
+        axios.get<OpenMeteoAirQualityPayload>(
+          `${this.openMeteoAirQualityApiUrl}/air-quality`,
+          {
+            params: {
+              latitude: roundedLat,
+              longitude: roundedLon,
+              current: 'pm10,pm2_5,us_aqi,european_aqi',
+              timezone: 'auto',
+            },
+          },
+        ),
+      ]);
 
-      const weatherData = response.data;
+      const weatherData: OpenMeteoPayload = {
+        forecast: forecastResponse.data,
+        airQuality: airQualityResponse.data,
+      };
+
       const weatherDataForCache = weatherData as Prisma.InputJsonValue;
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + this.cacheDurationMinutes);
@@ -143,10 +174,19 @@ export class WeatherService {
     payload: OpenMeteoPayload,
     expiresAt: Date,
   ): Weather {
-    const currentTime = payload.current?.time ?? '';
-    const hourlyTimes = payload.hourly?.time ?? [];
-    const hourlyTemps = payload.hourly?.temperature_2m ?? [];
-    const hourlyCodes = payload.hourly?.weather_code ?? [];
+    const forecast =
+      payload.forecast ??
+      ({
+        current: payload.current,
+        hourly: payload.hourly,
+        daily: payload.daily,
+      } as OpenMeteoForecastPayload);
+    const airQuality: OpenMeteoAirQualityPayload['current'] =
+      payload.airQuality?.current;
+    const currentTime = forecast.current?.time ?? '';
+    const hourlyTimes = forecast.hourly?.time ?? [];
+    const hourlyTemps = forecast.hourly?.temperature_2m ?? [];
+    const hourlyCodes = forecast.hourly?.weather_code ?? [];
 
     let startIndex = hourlyTimes.findIndex((time) => time >= currentTime);
     if (startIndex < 0) {
@@ -174,20 +214,29 @@ export class WeatherService {
     }
 
     const daily: WeatherDailyPoint[] = [];
-    const dailyTimes = payload.daily?.time ?? [];
-    const dailyMax = payload.daily?.temperature_2m_max ?? [];
-    const dailyMin = payload.daily?.temperature_2m_min ?? [];
-    const dailyCodes = payload.daily?.weather_code ?? [];
+    const dailyTimes = forecast.daily?.time ?? [];
+    const dailyMax = forecast.daily?.temperature_2m_max ?? [];
+    const dailyMin = forecast.daily?.temperature_2m_min ?? [];
+    const dailyCodes = forecast.daily?.weather_code ?? [];
+    const dailyPrecipitation = forecast.daily?.precipitation_sum ?? [];
+    const dailySunrise = forecast.daily?.sunrise ?? [];
+    const dailySunset = forecast.daily?.sunset ?? [];
 
     for (let index = 0; index < Math.min(7, dailyTimes.length); index += 1) {
       const tempMax = dailyMax[index];
       const tempMin = dailyMin[index];
       const weatherCode = dailyCodes[index];
+      const precipitation = dailyPrecipitation[index];
+      const sunrise = dailySunrise[index];
+      const sunset = dailySunset[index];
 
       if (
         typeof tempMax !== 'number' ||
         typeof tempMin !== 'number' ||
-        typeof weatherCode !== 'number'
+        typeof weatherCode !== 'number' ||
+        typeof precipitation !== 'number' ||
+        typeof sunrise !== 'string' ||
+        typeof sunset !== 'string'
       ) {
         continue;
       }
@@ -197,6 +246,9 @@ export class WeatherService {
         tempMax,
         tempMin,
         weatherCode,
+        precipitation,
+        sunrise,
+        sunset,
       });
     }
 
@@ -204,13 +256,20 @@ export class WeatherService {
       id: `${lat}_${lon}`,
       latitude: lat,
       longitude: lon,
-      temperature: payload.current?.temperature_2m ?? 0,
-      weatherCode: payload.current?.weather_code ?? 0,
-      windSpeed: payload.current?.wind_speed_10m ?? 0,
-      windDirection: payload.current?.wind_direction_10m ?? 0,
-      humidity: payload.current?.relative_humidity_2m ?? 0,
+      temperature: forecast.current?.temperature_2m ?? 0,
+      weatherCode: forecast.current?.weather_code ?? 0,
+      windSpeed: forecast.current?.wind_speed_10m ?? 0,
+      windDirection: forecast.current?.wind_direction_10m ?? 0,
+      humidity: forecast.current?.relative_humidity_2m ?? 0,
+      precipitation: forecast.current?.precipitation ?? 0,
       timestamp: currentTime,
       expiresAt: expiresAt.toISOString(),
+      airQuality: {
+        pm10: airQuality?.pm10 ?? 0,
+        pm2_5: airQuality?.pm2_5 ?? 0,
+        usAqi: airQuality?.us_aqi ?? 0,
+        europeanAqi: airQuality?.european_aqi ?? 0,
+      },
       hourly,
       daily,
     };
@@ -218,6 +277,14 @@ export class WeatherService {
 }
 
 interface OpenMeteoPayload {
+  forecast?: OpenMeteoForecastPayload;
+  airQuality?: OpenMeteoAirQualityPayload;
+  current?: OpenMeteoForecastPayload['current'];
+  hourly?: OpenMeteoForecastPayload['hourly'];
+  daily?: OpenMeteoForecastPayload['daily'];
+}
+
+interface OpenMeteoForecastPayload {
   current?: {
     time: string;
     temperature_2m: number;
@@ -225,6 +292,7 @@ interface OpenMeteoPayload {
     weather_code: number;
     wind_speed_10m: number;
     wind_direction_10m: number;
+    precipitation: number;
   };
   hourly?: {
     time: string[];
@@ -236,5 +304,17 @@ interface OpenMeteoPayload {
     weather_code: number[];
     temperature_2m_max: number[];
     temperature_2m_min: number[];
+    precipitation_sum: number[];
+    sunrise: string[];
+    sunset: string[];
+  };
+}
+
+interface OpenMeteoAirQualityPayload {
+  current?: {
+    pm10: number;
+    pm2_5: number;
+    us_aqi: number;
+    european_aqi: number;
   };
 }

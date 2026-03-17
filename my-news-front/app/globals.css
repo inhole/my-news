@@ -15,7 +15,7 @@
   --primary-weak: #eaf3ff;
   --danger: #f04452;
   --success: #00a86b;
-  --bottom-nav-height: 72px;
+  --bottom-nav-height: 66px;
   --app-top-nav-offset: 0px;
   --page-pad-x: 8px;
   --page-pad-y: 10px;
@@ -25,6 +25,10 @@
   --news-item-gap: 10px;
   --item-pad-x: 10px;
   --item-pad-y: 10px;
+  --section-pad-x: 12px;
+  --section-pad-y: 12px;
+  --section-pad-sm-x: 12px;
+  --section-pad-sm-y: 12px;
   --radius-card: 28px;
   --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
@@ -35,6 +39,10 @@
     --page-pad-y: 10px;
     --item-pad-x: 12px;
     --item-pad-y: 12px;
+    --section-pad-x: 14px;
+    --section-pad-y: 14px;
+    --section-pad-sm-x: 14px;
+    --section-pad-sm-y: 14px;
   }
 }
 
@@ -60,8 +68,13 @@ body {
 }
 
 .app-main {
-  padding: calc(var(--app-top-nav-offset) + var(--page-pad-y)) var(--page-pad-x) var(--page-pad-y);
+  padding:
+    calc(var(--app-top-nav-offset) + var(--page-pad-y))
+    var(--page-pad-x)
+    calc(var(--page-pad-y) + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   transition: padding-top 280ms ease-out;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .news-list-wrap {
@@ -98,11 +111,11 @@ body {
 }
 
 .section-pad {
-  padding: clamp(8px, 1vw, 12px);
+  padding: var(--section-pad-y) var(--section-pad-x);
 }
 
 .section-pad-sm {
-  padding: clamp(6px, 0.8vw, 10px);
+  padding: var(--section-pad-sm-y) var(--section-pad-sm-x);
 }
 
 .toss-pill {
