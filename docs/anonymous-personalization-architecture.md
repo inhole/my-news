@@ -2,138 +2,97 @@
 
 ## 목표
 
-`My News`를 로그인 없이도 개인화가 가능한 모바일 웹/PWA로 운영한다.  
-개인화 기준은 `사용자 계정`이 아니라 `브라우저 단위 익명 프로필`이다.
+`My News`를 로그인 없이도 개인화가 가능한 모바일 중심 PWA로 운영합니다.  
+개인화 기준은 계정이 아니라 브라우저 단위의 익명 프로필입니다.
 
-## 설계 원칙
+## 핵심 원칙
 
-1. MVP는 읽기 중심으로 단순하게 유지한다.
-2. 개인화 데이터는 우선 로컬에 저장한다.
-3. 추천 품질은 `규칙 기반 랭킹`부터 시작하고 이후 AI 모듈로 확장한다.
-4. 모듈 경계를 명확히 해서 AI가 독립적으로 구현할 수 있게 한다.
-5. 로그인, 관리자 페이지, 운영자 수동 액션에 의존하지 않는다.
+1. 모든 개인화 데이터는 사용자 브라우저에 저장합니다.
+2. 홈 화면은 `날씨`와 `맞춤 뉴스` 두 개의 상단 탭으로 단순하게 유지합니다.
+3. 맞춤 뉴스는 카테고리 선호도, 키워드 선호도, 최근 조회 이력을 합산해 정렬합니다.
+4. 기사 카드에는 AI 3줄 요약을 우선 노출하고, OpenAI가 없으면 추출형 요약으로 폴백합니다.
+5. 로그인, 관리자 페이지, 복잡한 운영 액션은 현재 범위에서 제외합니다.
 
-## 시스템 구조
+## 홈 화면 구조
 
-### 1. 콘텐츠 수집 계층
+### 1. 날씨 탭
 
-- 역할: 뉴스 수집, 카테고리 분류, 본문 정제, 이미지 보정
-- 현재 담당: `my-news-back/src/news`
-- 출력: 정규화된 `News`, `Category`
+- 위치 기반 현재/시간별/주간 날씨 표시
+- 오늘의 헤드라인 1건 표시
+- 최신 뉴스 브리핑 표시
 
-### 2. 익명 프로필 계층
+### 2. 맞춤 뉴스 탭
 
-- 역할: 브라우저별 익명 사용자 식별자와 관심 신호 저장
-- 저장소: `localStorage` 또는 추후 `IndexedDB`
-- 핵심 데이터
-  - `anonymousProfile.id`
-  - 카테고리별 점수
-  - 키워드별 점수
-  - 본 기사 ID 집합
-  - 최근 상호작용 로그
+- 익명 프로필 기반으로 점수를 계산한 관심 뉴스 리스트 표시
+- 각 카드에 `AI Summary` 3줄 표시
+- 최근 읽은 카테고리와 키워드를 기반으로 우선순위 재정렬
 
-### 3. 행동 신호 수집 계층
+## 프로필 구조
 
-- 역할: 사용자 행동을 이벤트로 수집
-- 우선 수집 이벤트
-  - 기사 클릭
-  - 기사 상세 진입
-  - 공유
-  - 일정 시간 이상 읽음
-  - 관심 없음
+저장 위치: `localStorage`
 
-### 4. 랭킹 계층
+- `anonymousProfile.id`
+- `categoryScores`
+- `keywordScores`
+- `seenNewsIds`
+- `createdAt`
+- `updatedAt`
 
-- 입력
-  - 뉴스 목록
-  - 익명 프로필
-  - 최근성 점수
-- 출력
-  - 개인화 정렬된 피드
-- 초기 점수식 예시
-  - `finalScore = freshness + categoryAffinity + keywordAffinity + sourceDiversityPenalty + seenPenalty`
+## 동작 흐름
 
-### 5. 피드 조립 계층
+### 1. 뉴스 소비 신호 수집
 
-- 역할: 홈 피드와 목록 피드에 맞게 결과를 배치
-- 규칙
-  - 헤드라인 1개
-  - 최신 뉴스 브리프
-  - 카테고리 다양성 보장
-  - 동일 출처 과다 노출 억제
+- 홈/맞춤 뉴스/뉴스 목록에서 기사 클릭
+- 기사 클릭 시 카테고리 점수 증가
+- 기사 제목/설명에서 추출한 키워드 점수 증가
+- 본 기사 ID는 `seenNewsIds`에 저장
 
-## 모듈 분해
+### 2. 맞춤 뉴스 점수 계산
+
+예시 수식:
+
+```text
+personalizedScore = categoryAffinity * 2 + keywordAffinity + freshness - seenPenalty
+```
+
+- `categoryAffinity`: 선호 카테고리 누적 점수
+- `keywordAffinity`: 제목/설명 키워드 매칭 점수
+- `freshness`: 최신 기사 가산점
+- `seenPenalty`: 이미 본 기사 감점
+
+### 3. AI 3줄 요약
+
+- 입력: `title`, `description`, `content`, `categoryName`
+- 우선순위:
+  1. `OPENAI_API_KEY`가 있으면 OpenAI Chat Completions 호출
+  2. 없으면 설명/본문 기반 추출형 3줄 요약 생성
+- 출력: 카드당 3개의 짧은 한국어 문장
+
+## 모듈 위치
 
 ### Frontend
 
-- `lib/personalization/anonymous-profile.ts`
+- `my-news-front/app/page.tsx`
+  - 홈 탭 구성과 맞춤 뉴스 렌더링
+- `my-news-front/app/api/ai/summarize/route.ts`
+  - AI 요약 API와 폴백 로직
+- `my-news-front/lib/personalization/anonymous-profile.ts`
   - 익명 프로필 생성/조회/저장
-- `lib/personalization/signal-tracker.ts`
-  - 행동 이벤트 기록
-- `lib/personalization/ranker.ts`
-  - 클라이언트 랭킹 계산
-- `hooks/use-personalized-feed.ts`
-  - 피드 조회 + 랭킹 조립
-- `app/mypage/page.tsx`
-  - 현재 개인화 상태 설명과 디버그 화면
+- `my-news-front/lib/personalization/signal-tracker.ts`
+  - 클릭 기반 관심 신호 적재
+- `my-news-front/lib/personalization/personalized-feed.ts`
+  - 맞춤 뉴스 정렬
 
 ### Backend
 
-- `news.service.ts`
-  - 정규화된 기사 제공
-- `news-batch.service.ts`
-  - 주기 수집
-- 추후 후보
-  - `recommendation.module.ts`
-  - `keyword-extractor.service.ts`
-  - `topic-score.service.ts`
+- `my-news-back/src/news/news.service.ts`
+  - 수집 기사 제공
+- `my-news-back/src/news/news-batch.service.ts`
+  - 배치 수집
 
-## AI 협업 단위
+## 확장 방향
 
-AI가 구현하기 쉽게 아래 단위로 나눈다.
-
-1. 익명 프로필 저장 모듈
-2. 기사 클릭/조회 이벤트 추적 모듈
-3. 카테고리 점수 계산 모듈
-4. 키워드 추출 모듈
-5. 개인화 랭커 모듈
-6. 홈 피드 조립 모듈
-7. 개인화 테스트 데이터/시뮬레이터
-
-## 구현 순서
-
-### 1단계
-
-- 로그인 제거
-- 인증/북마크 API 제거
-- 익명 프로필 스토리지 추가
-- 문서화
-
-### 2단계
-
-- 기사 클릭 이벤트 누적
-- 본 기사 숨김
-- 카테고리 선호 점수 반영
-
-### 3단계
-
-- 키워드 기반 추천
-- 출처 다양성 조절
-- 공유/체류시간 신호 반영
-
-### 4단계
-
-- 서버 보조 랭킹
-- 추천 실험 파라미터 관리
-- TWA/앱 배포 고려
-
-## 제약 사항
-
-- 로그인 없이 기기 간 동기화는 불가
-- 브라우저 저장소 초기화 시 개인화 이력 소실
-- 완전한 사용자 장기 프로필은 제공하지 않음
-
-## 현재 결론
-
-이 프로젝트는 로그인 없이도 `나만의 관심 뉴스`를 충분히 구현할 수 있다.  
-다만 정의는 `회원 개인화`가 아니라 `익명 브라우저 기반 개인화`이며, 현재 제품 방향과 운영 복잡도에 가장 잘 맞는다.
+1. 상세 페이지 체류 시간, 공유, 스크롤 깊이까지 신호 확장
+2. 기사 본문 임베딩 또는 토픽 추출 기반 정교한 추천
+3. 서버 캐시 또는 배치 요약 저장으로 요약 응답 속도 개선
+4. 맞춤 뉴스 탭에 이유 설명 문구 추가

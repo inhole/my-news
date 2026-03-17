@@ -8,6 +8,8 @@ export type AnonymousProfile = {
 };
 
 const STORAGE_KEY = 'my-news.anonymous-profile';
+let cachedRawProfile: string | null = null;
+let cachedProfile: AnonymousProfile | null = null;
 
 function nowIso() {
   return new Date().toISOString();
@@ -26,13 +28,14 @@ export function saveAnonymousProfile(profile: AnonymousProfile) {
     return;
   }
 
-  window.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({
-      ...profile,
-      updatedAt: nowIso(),
-    } satisfies AnonymousProfile),
-  );
+  const serializedProfile = JSON.stringify({
+    ...profile,
+    updatedAt: nowIso(),
+  } satisfies AnonymousProfile);
+
+  cachedRawProfile = serializedProfile;
+  cachedProfile = JSON.parse(serializedProfile) as AnonymousProfile;
+  window.localStorage.setItem(STORAGE_KEY, serializedProfile);
 }
 
 export function createAnonymousProfile(): AnonymousProfile {
@@ -56,12 +59,22 @@ export function getAnonymousProfile(): AnonymousProfile | null {
 
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) {
+    cachedRawProfile = null;
+    cachedProfile = null;
     return null;
   }
 
+  if (raw === cachedRawProfile) {
+    return cachedProfile;
+  }
+
   try {
-    return JSON.parse(raw) as AnonymousProfile;
+    cachedRawProfile = raw;
+    cachedProfile = JSON.parse(raw) as AnonymousProfile;
+    return cachedProfile;
   } catch {
+    cachedRawProfile = null;
+    cachedProfile = null;
     return null;
   }
 }

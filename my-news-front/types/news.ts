@@ -20,3 +20,8 @@ export interface NewsListResponse {
   nextCursor: string | null;
   hasMore: boolean;
 }
+
+export interface NewsSummary {
+  id: string;
+  lines: string[];
+}

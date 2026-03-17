@@ -1,7 +1,6 @@
 # my-news
 
-카테고리 뉴스와 위치 기반 날씨를 제공하는 모바일 웹/PWA 프로젝트입니다.  
-현재 방향은 `로그인 없는 익명 개인화 뉴스 서비스`입니다.
+카테고리 뉴스와 위치 기반 날씨를 함께 제공하는 모바일 중심 PWA 프로젝트입니다. 현재 방향은 로그인 없는 익명 개인화 뉴스 서비스입니다.
 
 ## 구성
 
@@ -14,44 +13,36 @@
 - Backend: NestJS, Prisma, PostgreSQL, Swagger
 - Database: Neon PostgreSQL
 
-## 현재 제품 방향
-
-- 로그인과 회원 북마크 기능 제거
-- 브라우저 단위 익명 프로필로 개인화 확장
-- 관리자 없는 단순 운영 배포를 전제로 자동 수집과 읽기 중심 구조 유지
-- 웹 우선 개발 후 PWA/TWA 또는 앱 래핑으로 확장 가능
-
 ## 주요 화면
 
 - 홈
-  - 위치 기반 날씨 카드
-  - 오늘의 헤드라인
-  - 최신 뉴스 브리프
+  - 상단 카테고리 탭: `날씨`, `맞춤 뉴스`
+  - 날씨 탭: 위치 기반 날씨 카드, 오늘의 헤드라인, 최신 뉴스 브리핑
+  - 맞춤 뉴스 탭: 나의 관심 뉴스 리스트, AI 3줄 요약
 - 뉴스 목록
   - 카테고리 필터
   - 검색
   - 무한 스크롤
 - 뉴스 상세
   - 본문 HTML 렌더링
-  - 공유
   - 원문 이동
-- 내 피드
+- 마이페이지
   - 익명 개인화 구조 설명
-  - 로컬 프로필 기반 동작 방식 안내
+  - 로컬 프로필 상태 안내
 
 ## 실행
 
 루트에서 전체 워크스페이스 의존성을 설치합니다.
 
 ```bash
-npm run install:all
+npm install
 ```
 
 개발 서버 실행:
 
 ```bash
-npm run dev:front
-npm run dev:back
+npm run dev --workspace my-news-front
+npm run start:dev --workspace my-news-back
 ```
 
 ## 환경 변수
@@ -59,8 +50,14 @@ npm run dev:back
 프론트엔드:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_BASE_URL=/api
+BACKEND_BASE_URL=http://localhost:3000
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
 ```
+
+- `OPENAI_API_KEY`가 있으면 맞춤 뉴스 3줄 요약에 OpenAI API를 사용합니다.
+- 키가 없으면 서버에서 추출형 요약으로 안전하게 폴백합니다.
 
 백엔드 필수:
 
@@ -76,23 +73,13 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 
 로컬 DB 설정은 [NEON_LOCAL_SETUP.md](/C:/dev/workspace/my-news/NEON_LOCAL_SETUP.md)를 참고합니다.
 
-## 데이터 모델 변경 메모
-
-로그인 제거에 따라 Prisma 스키마에서 `User`, `Bookmark` 모델을 제거했습니다.  
-DB를 현재 스키마에 맞추려면 백엔드에서 스키마 반영이 필요합니다.
-
-```bash
-npm run db:generate --workspace my-news-back
-npm run db:push --workspace my-news-back
-```
-
-## 설계 문서
+## 문서
 
 - [anonymous-personalization-architecture.md](/C:/dev/workspace/my-news/docs/anonymous-personalization-architecture.md)
 
 ## 2026-03-17 업데이트
 
-- 인증과 북마크 의존성 제거
-- 뉴스/날씨 중심 API 문서로 Swagger 단순화
-- 상단/하단 내비를 익명 개인화 방향에 맞춰 정리
-- 익명 개인화 아키텍처 문서 추가
+- 홈 상단에 `날씨 / 맞춤 뉴스` 탭 추가
+- 맞춤 뉴스 탭에 익명 프로필 기반 관심 뉴스 정렬 추가
+- 맞춤 뉴스 카드에 AI 3줄 요약 추가
+- OpenAI 미설정 환경을 위한 추출형 요약 폴백 추가
