@@ -186,7 +186,7 @@ export function WeatherWidget() {
   const primaryDustStatus = getDustStatus(weather.airQuality.pm10);
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       <section
         className="overflow-hidden rounded-[var(--radius-card)] border border-[#cfe0ff] text-white shadow-[0_20px_44px_rgba(52,118,217,0.24)]"
         style={{

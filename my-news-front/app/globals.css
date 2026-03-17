@@ -73,8 +73,9 @@ body {
     var(--page-pad-x)
     calc(var(--page-pad-y) + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   transition: padding-top 280ms ease-out;
-  overscroll-behavior-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable both-edges;
 }
 
 .news-list-wrap {

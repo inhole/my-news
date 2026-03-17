@@ -3,17 +3,17 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Brain, Ellipsis, Flame, Search, Sparkles, SunMedium } from 'lucide-react';
+import { Brain, Ellipsis, Search } from 'lucide-react';
 import { CategoryTabs } from '@/components/news/category-tabs';
 import { useNewsDetail } from '@/hooks/use-queries';
 
 type HomeTab = 'weather' | 'headline' | 'trending' | 'personalized';
 
-const homeTabs: Array<{ id: HomeTab; label: string; icon: typeof SunMedium }> = [
-  { id: 'weather', label: '날씨', icon: SunMedium },
-  { id: 'headline', label: '헤드라인', icon: Sparkles },
-  { id: 'trending', label: '실검', icon: Flame },
-  { id: 'personalized', label: '맞춤 뉴스', icon: Brain },
+const homeTabs: Array<{ id: HomeTab; label: string }> = [
+  { id: 'weather', label: '날씨' },
+  { id: 'headline', label: '헤드라인' },
+  { id: 'trending', label: '실검' },
+  { id: 'personalized', label: '맞춤 뉴스' },
 ];
 
 function formatTodayLabel() {
@@ -91,8 +91,7 @@ export function AppTopNav() {
 
   useEffect(() => {
     const updateOffset = () => {
-      const nextOffset =
-        headerRef.current ? `${headerRef.current.offsetHeight}px` : '0px';
+      const nextOffset = headerRef.current ? `${headerRef.current.offsetHeight}px` : '0px';
       document.documentElement.style.setProperty('--app-top-nav-offset', nextOffset);
     };
 
@@ -144,71 +143,71 @@ export function AppTopNav() {
       className="fixed left-0 right-0 top-0 z-50 transition-[height] duration-300 ease-out"
     >
       <div className="mx-auto w-full max-w-[980px] pt-3">
-        <div className="overflow-visible border-b border-[var(--line)] bg-[rgba(255,255,255,0.94)] shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+        <div className="overflow-visible bg-[rgba(255,255,255,0.96)] shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur">
           <div
             className={`overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out ${
               collapsed ? 'max-h-0 px-5 py-0 opacity-0 sm:px-6' : 'max-h-32 px-5 py-4 opacity-100 sm:px-6'
             }`}
           >
             <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                My News
-              </p>
-              <p className="mt-1 text-sm font-bold text-[var(--text)]">{formatTodayLabel()}</p>
-            </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  My News
+                </p>
+                <p className="mt-1 text-sm font-bold text-[var(--text)]">{formatTodayLabel()}</p>
+              </div>
 
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsMenuOpen((prev) => !prev)}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#374151] transition hover:bg-[#e9eef5]"
-                aria-label="메뉴 보기"
-              >
-                <Ellipsis className="h-5 w-5" />
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen((prev) => !prev)}
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#374151] transition hover:bg-[#e9eef5]"
+                  aria-label="메뉴 보기"
+                >
+                  <Ellipsis className="h-5 w-5" />
+                </button>
 
-              {isMenuOpen && (
-                <div className="absolute right-0 top-14 w-[292px] rounded-[24px] bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-[var(--line)]">
-                  <form onSubmit={handleSearchSubmit} className="space-y-2">
-                    <label className="text-xs font-semibold text-[#6b7280]">뉴스 검색</label>
-                    <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface-soft)] px-3 py-3 ring-1 ring-[var(--line)]">
-                      <Search className="h-4 w-4 text-[#6b7280]" />
-                      <input
-                        key={searchKeyword}
-                        ref={searchInputRef}
-                        defaultValue={searchKeyword}
-                        placeholder="뉴스 검색어 입력"
-                        className="w-full bg-transparent text-sm text-[#111827] outline-none"
-                      />
+                {isMenuOpen && (
+                  <div className="absolute right-0 top-14 w-[292px] rounded-[24px] bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-[var(--line)]">
+                    <form onSubmit={handleSearchSubmit} className="space-y-2">
+                      <label className="text-xs font-semibold text-[#6b7280]">뉴스 검색</label>
+                      <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface-soft)] px-3 py-3 ring-1 ring-[var(--line)]">
+                        <Search className="h-4 w-4 text-[#6b7280]" />
+                        <input
+                          key={searchKeyword}
+                          ref={searchInputRef}
+                          defaultValue={searchKeyword}
+                          placeholder="뉴스 검색어 입력"
+                          className="w-full bg-transparent text-sm text-[#111827] outline-none"
+                        />
+                      </div>
+                    </form>
+
+                    <div className="mt-3 rounded-[20px] bg-[var(--surface-soft)] px-4 py-4">
+                      <p className="text-xs font-semibold text-[#6b7280]">개인화 상태</p>
+                      <p className="mt-1 text-sm font-bold text-[#111827]">익명 프로필 활성화</p>
+                      <p className="mt-2 text-xs leading-5 text-[#6b7280]">
+                        로그인 없이도 기기 안에서만 관심사 신호를 저장하고 맞춤 뉴스를 정렬합니다.
+                      </p>
+                      <Link
+                        href="/mypage"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]"
+                      >
+                        <Brain className="h-4 w-4" />
+                        <span>설정 보기</span>
+                      </Link>
                     </div>
-                  </form>
-
-                  <div className="mt-3 rounded-[20px] bg-[var(--surface-soft)] px-4 py-4">
-                    <p className="text-xs font-semibold text-[#6b7280]">개인화 상태</p>
-                    <p className="mt-1 text-sm font-bold text-[#111827]">익명 프로필 활성화</p>
-                    <p className="mt-2 text-xs leading-5 text-[#6b7280]">
-                      로그인 없이도 기기 안에서만 관심 신호를 저장하고 맞춤 뉴스를 정렬합니다.
-                    </p>
-                    <Link
-                      href="/mypage"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]"
-                    >
-                      <Brain className="h-4 w-4" />
-                      <span>설계 보기</span>
-                    </Link>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
           </div>
 
           {isHomeRoute && (
-            <div className={`${collapsed ? '' : 'border-t'} border-[var(--line)] px-3 pb-3 pt-2 sm:px-5`}>
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                {homeTabs.map(({ id, label, icon: Icon }) => {
+            <div className="px-3 pb-4 pt-3 sm:px-5">
+              <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+                {homeTabs.map(({ id, label }) => {
                   const active = selectedHomeTab === id;
 
                   return (
@@ -216,13 +215,12 @@ export function AppTopNav() {
                       key={id}
                       type="button"
                       onClick={() => handleHomeTabChange(id)}
-                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                      className={`inline-flex shrink-0 items-center px-1 py-3 text-[15px] transition ${
                         active
-                          ? 'bg-[var(--primary-strong)] text-white'
-                          : 'bg-[var(--surface-soft)] text-[var(--muted)] hover:bg-[var(--primary-weak)] hover:text-[var(--primary-strong)]'
+                          ? 'font-bold text-[var(--primary-strong)]'
+                          : 'font-medium text-[var(--muted)] hover:text-[var(--primary-strong)]'
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
                       <span>{label}</span>
                     </button>
                   );
@@ -232,7 +230,7 @@ export function AppTopNav() {
           )}
 
           {isNewsRoute && (
-            <div className={`${collapsed ? '' : 'border-t'} border-[var(--line)] px-4 pb-3 pt-1 sm:px-5`}>
+            <div className="px-4 pb-4 pt-2 sm:px-5">
               <CategoryTabs selected={selectedCategory} onChange={handleCategoryChange} />
             </div>
           )}
