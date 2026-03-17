@@ -3,9 +3,18 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Brain, Ellipsis, Search } from 'lucide-react';
+import { Brain, Ellipsis, Flame, Search, Sparkles, SunMedium } from 'lucide-react';
 import { CategoryTabs } from '@/components/news/category-tabs';
 import { useNewsDetail } from '@/hooks/use-queries';
+
+type HomeTab = 'weather' | 'headline' | 'trending' | 'personalized';
+
+const homeTabs: Array<{ id: HomeTab; label: string; icon: typeof SunMedium }> = [
+  { id: 'weather', label: '날씨', icon: SunMedium },
+  { id: 'headline', label: '헤드라인', icon: Sparkles },
+  { id: 'trending', label: '실검', icon: Flame },
+  { id: 'personalized', label: '맞춤 뉴스', icon: Brain },
+];
 
 function formatTodayLabel() {
   return new Date().toLocaleDateString('ko-KR', {
@@ -26,9 +35,11 @@ export function AppTopNav() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastScrollTopRef = useRef(0);
   const tickingRef = useRef(false);
+  const isHomeRoute = pathname === '/';
   const isNewsRoute = pathname === '/news' || pathname?.startsWith('/news/');
   const newsId = typeof params.id === 'string' ? params.id : '';
   const searchKeyword = searchParams.get('search') || '';
+  const selectedHomeTab = (searchParams.get('tab') as HomeTab) || 'weather';
   const { data: detailNews } = useNewsDetail(isNewsRoute ? newsId : '');
 
   const selectedCategory = useMemo(() => {
@@ -92,7 +103,7 @@ export function AppTopNav() {
       window.removeEventListener('resize', updateOffset);
       document.documentElement.style.setProperty('--app-top-nav-offset', '0px');
     };
-  }, [visible, isNewsRoute, selectedCategory]);
+  }, [visible, isHomeRoute, isNewsRoute, selectedCategory, selectedHomeTab]);
 
   const handleCategoryChange = (categorySlug: string) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -105,6 +116,12 @@ export function AppTopNav() {
 
     const nextQuery = nextParams.toString();
     router.push(nextQuery ? `/news?${nextQuery}` : '/news');
+  };
+
+  const handleHomeTabChange = (tab: HomeTab) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set('tab', tab);
+    router.push(`/?${nextParams.toString()}`);
   };
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -143,7 +160,7 @@ export function AppTopNav() {
                 type="button"
                 onClick={() => setIsMenuOpen((prev) => !prev)}
                 className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#374151] transition hover:bg-[#e9eef5]"
-                aria-label="더 보기"
+                aria-label="메뉴 보기"
               >
                 <Ellipsis className="h-5 w-5" />
               </button>
@@ -151,7 +168,7 @@ export function AppTopNav() {
               {isMenuOpen && (
                 <div className="absolute right-0 top-14 w-[292px] rounded-[24px] bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-[var(--line)]">
                   <form onSubmit={handleSearchSubmit} className="space-y-2">
-                    <label className="text-xs font-semibold text-[#6b7280]">검색</label>
+                    <label className="text-xs font-semibold text-[#6b7280]">뉴스 검색</label>
                     <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface-soft)] px-3 py-3 ring-1 ring-[var(--line)]">
                       <Search className="h-4 w-4 text-[#6b7280]" />
                       <input
@@ -168,7 +185,7 @@ export function AppTopNav() {
                     <p className="text-xs font-semibold text-[#6b7280]">개인화 상태</p>
                     <p className="mt-1 text-sm font-bold text-[#111827]">익명 프로필 활성화</p>
                     <p className="mt-2 text-xs leading-5 text-[#6b7280]">
-                      로그인 없이 이 기기에서만 개인화 신호를 저장하는 구조로 전환했습니다.
+                      로그인 없이도 기기 안에서만 관심 신호를 저장하고 맞춤 뉴스를 정렬합니다.
                     </p>
                     <Link
                       href="/mypage"
@@ -176,13 +193,39 @@ export function AppTopNav() {
                       className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]"
                     >
                       <Brain className="h-4 w-4" />
-                      <span>내 피드 설계 보기</span>
+                      <span>설계 보기</span>
                     </Link>
                   </div>
                 </div>
               )}
             </div>
           </div>
+
+          {isHomeRoute && (
+            <div className="border-t border-[var(--line)] px-3 pb-3 pt-2 sm:px-5">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                {homeTabs.map(({ id, label, icon: Icon }) => {
+                  const active = selectedHomeTab === id;
+
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => handleHomeTabChange(id)}
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                        active
+                          ? 'bg-[var(--primary-strong)] text-white'
+                          : 'bg-[var(--surface-soft)] text-[var(--muted)] hover:bg-[var(--primary-weak)] hover:text-[var(--primary-strong)]'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {isNewsRoute && (
             <div className="border-t border-[var(--line)] px-4 pb-3 sm:px-5">
