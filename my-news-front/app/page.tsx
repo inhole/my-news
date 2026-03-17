@@ -70,7 +70,7 @@ export default function Home() {
       ) : articles.length === 0 ? (
         <EmptyState
           title="표시할 뉴스가 없습니다"
-          message="뉴스가 수집되면 여기에 최신 기사 요약을 보여드립니다."
+          message="뉴스 수집이 완료되면 최신 기사 요약을 보여드립니다."
           icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
         />
       ) : (
@@ -137,7 +137,7 @@ export default function Home() {
                   Latest Feed
                 </p>
                 <h2 className="mt-1 text-xl font-bold tracking-[-0.02em] text-[var(--text)]">
-                  최신 뉴스 브리핑
+                  최신 뉴스 브리프
                 </h2>
               </div>
               <Link

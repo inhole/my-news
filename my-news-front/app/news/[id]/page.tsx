@@ -1,38 +1,16 @@
 'use client';
 
-import type { AxiosError } from 'axios';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import { Bookmark, Clock, ExternalLink, Share2 } from 'lucide-react';
+import { Clock, ExternalLink, Share2 } from 'lucide-react';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingPage } from '@/components/ui/loading';
-import { useAddBookmark, useNewsDetail } from '@/hooks/use-queries';
-
-type ApiErrorResponse = {
-  message?: string | string[];
-};
+import { useNewsDetail } from '@/hooks/use-queries';
 
 export default function NewsDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const { data: news, isLoading, isError, error, refetch } = useNewsDetail(id);
-  const addBookmark = useAddBookmark();
-
-  const handleBookmark = async () => {
-    try {
-      await addBookmark.mutateAsync(id);
-      alert('북마크에 추가했습니다.');
-    } catch (err: unknown) {
-      const axiosError = err as AxiosError<ApiErrorResponse>;
-
-      if (axiosError.response?.status === 409) {
-        alert('이미 북마크에 추가한 기사입니다.');
-        return;
-      }
-
-      alert('북마크 추가에 실패했습니다.');
-    }
-  };
 
   const handleShare = async () => {
     if (navigator.share && news) {
@@ -115,21 +93,12 @@ export default function NewsDetailPage() {
               >
                 <Share2 className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                onClick={handleBookmark}
-                disabled={addBookmark.isPending}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4b5563] hover:bg-[#e9eef5] disabled:opacity-50"
-                title="북마크"
-              >
-                <Bookmark className="h-4 w-4" />
-              </button>
               <a
                 href={news.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4b5563] hover:bg-[#e9eef5]"
-                title="원본 보기"
+                title="원문 보기"
               >
                 <ExternalLink className="h-4 w-4" />
               </a>
@@ -142,7 +111,7 @@ export default function NewsDetailPage() {
             ) : bodyText ? (
               <div className="article-content break-words whitespace-pre-wrap">{bodyText}</div>
             ) : (
-              <p>표시할 본문이 없습니다. 원본 보기에서 전체 기사를 확인해 주세요.</p>
+              <p>표시할 본문이 없습니다. 원문 보기에서 전체 기사를 확인해 주세요.</p>
             )}
           </div>
         </div>

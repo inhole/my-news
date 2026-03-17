@@ -1,6 +1,7 @@
 # my-news
 
-카테고리 뉴스, 북마크, 위치 기반 날씨를 제공하는 반응형 뉴스 서비스입니다.
+카테고리 뉴스와 위치 기반 날씨를 제공하는 모바일 웹/PWA 프로젝트입니다.  
+현재 방향은 `로그인 없는 익명 개인화 뉴스 서비스`입니다.
 
 ## 구성
 
@@ -10,36 +11,43 @@
 ## 기술 스택
 
 - Frontend: Next.js, React, TypeScript, TanStack Query, Tailwind CSS
-- Backend: NestJS, Prisma, PostgreSQL, Swagger, JWT 인증
+- Backend: NestJS, Prisma, PostgreSQL, Swagger
 - Database: Neon PostgreSQL
+
+## 현재 제품 방향
+
+- 로그인과 회원 북마크 기능 제거
+- 브라우저 단위 익명 프로필로 개인화 확장
+- 관리자 없는 단순 운영 배포를 전제로 자동 수집과 읽기 중심 구조 유지
+- 웹 우선 개발 후 PWA/TWA 또는 앱 래핑으로 확장 가능
 
 ## 주요 화면
 
-- 홈:
-  - 상단 로고 영역 제거
-  - 날씨 카드(현재/시간별/주간) + 최신 뉴스 5개 노출
-  - 제목 중심의 깔끔한 카드 구성
-- 뉴스:
-  - 상단 카테고리 탭은 뉴스 탭에서만 노출
-  - 아래 스크롤 시 숨김, 위 스크롤 시 재노출
-  - 뉴스 카드 우측 상단 액션 아이콘(북마크/원문) 배치
-  - 목록은 제목 중심으로 노출
-- 상세:
-  - 본문 잘림 방지를 위한 `break-words`, `whitespace-pre-line` 적용
-- 공통:
-  - 상,하단 네비게이션 고정
-  - safe-area 대응으로 고정 nav가 리스트/본문을 가리지 않도록 패딩 확보
-  - 상단 네비게이션 우측 더보기 버튼은 로그인, 검색, 설정 등 향후 기능 확장용으로 배치
+- 홈
+  - 위치 기반 날씨 카드
+  - 오늘의 헤드라인
+  - 최신 뉴스 브리프
+- 뉴스 목록
+  - 카테고리 필터
+  - 검색
+  - 무한 스크롤
+- 뉴스 상세
+  - 본문 HTML 렌더링
+  - 공유
+  - 원문 이동
+- 내 피드
+  - 익명 개인화 구조 설명
+  - 로컬 프로필 기반 동작 방식 안내
 
 ## 실행
 
-루트에서 전체 의존성을 설치합니다.
+루트에서 전체 워크스페이스 의존성을 설치합니다.
 
 ```bash
 npm run install:all
 ```
 
-개별 실행:
+개발 서버 실행:
 
 ```bash
 npm run dev:front
@@ -57,8 +65,6 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 백엔드 필수:
 
 - `DATABASE_URL`
-- `JWT_SECRET`
-- `JWT_REFRESH_SECRET`
 - `NAVER_CLIENT_ID`
 - `NAVER_CLIENT_SECRET`
 
@@ -68,17 +74,25 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 - `PORT`
 - `CORS_ORIGIN`
 
-로컬 DB 설정은 [NEON_LOCAL_SETUP.md](/C:/dev/workspace/my-news/NEON_LOCAL_SETUP.md) 참고.
+로컬 DB 설정은 [NEON_LOCAL_SETUP.md](/C:/dev/workspace/my-news/NEON_LOCAL_SETUP.md)를 참고합니다.
 
-## 썸네일/원문 정책
+## 데이터 모델 변경 메모
 
-- 기본 뉴스 수집은 Naver News API 메타데이터를 사용합니다.
-- 추가로 원문 HTML의 `og:image`, `twitter:image`를 우선 추출해 썸네일로 사용합니다.
-- 이미지가 없거나 접근 불가 시 프론트에서 대체 썸네일 UI를 표시합니다.
-- `next/image` 호스트 오류 방지를 위해 현재는 `images.unoptimized = true`로 운영합니다.
-## 2026-03-12 Frontend Refresh
+로그인 제거에 따라 Prisma 스키마에서 `User`, `Bookmark` 모델을 제거했습니다.  
+DB를 현재 스키마에 맞추려면 백엔드에서 스키마 반영이 필요합니다.
 
-- The app shell now uses a Toss-inspired visual system with brighter surfaces, larger card radii, lighter shadows, and stronger blue emphasis.
-- The top navigation is a fixed overlay and hides on downward scroll while the body content expands into the recovered space.
-- On news routes, category tabs are rendered under the shared top navigation instead of replacing it.
-- News detail actions now live in the metadata row and include share, bookmark, and original-link actions together.
+```bash
+npm run db:generate --workspace my-news-back
+npm run db:push --workspace my-news-back
+```
+
+## 설계 문서
+
+- [anonymous-personalization-architecture.md](/C:/dev/workspace/my-news/docs/anonymous-personalization-architecture.md)
+
+## 2026-03-17 업데이트
+
+- 인증과 북마크 의존성 제거
+- 뉴스/날씨 중심 API 문서로 Swagger 단순화
+- 상단/하단 내비를 익명 개인화 방향에 맞춰 정리
+- 익명 개인화 아키텍처 문서 추가

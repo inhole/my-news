@@ -7,7 +7,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'My News',
-  description: '개인화 뉴스와 날씨를 한 번에 보는 My News',
+  description: '익명 개인화 기반 뉴스와 날씨를 한 번에 보는 My News',
 };
 
 export default function RootLayout({

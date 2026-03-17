@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Ellipsis, LogIn, Search } from 'lucide-react';
+import { Brain, Ellipsis, Search } from 'lucide-react';
 import { CategoryTabs } from '@/components/news/category-tabs';
 import { useNewsDetail } from '@/hooks/use-queries';
 
@@ -21,33 +21,15 @@ export function AppTopNav() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('search') || '');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [visible, setVisible] = useState(true);
   const headerRef = useRef<HTMLElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const lastScrollTopRef = useRef(0);
   const tickingRef = useRef(false);
   const isNewsRoute = pathname === '/news' || pathname?.startsWith('/news/');
   const newsId = typeof params.id === 'string' ? params.id : '';
+  const searchKeyword = searchParams.get('search') || '';
   const { data: detailNews } = useNewsDetail(isNewsRoute ? newsId : '');
-
-  useEffect(() => {
-    setSearchKeyword(searchParams.get('search') || '');
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const syncAuthState = () => {
-      setIsLoggedIn(Boolean(localStorage.getItem('accessToken')));
-    };
-
-    syncAuthState();
-    window.addEventListener('storage', syncAuthState);
-    return () => window.removeEventListener('storage', syncAuthState);
-  }, []);
 
   const selectedCategory = useMemo(() => {
     if (pathname === '/news') {
@@ -129,7 +111,7 @@ export function AppTopNav() {
     event.preventDefault();
 
     const nextParams = new URLSearchParams();
-    const trimmed = searchKeyword.trim();
+    const trimmed = searchInputRef.current?.value.trim() || '';
 
     if (trimmed) {
       nextParams.set('search', trimmed);
@@ -161,7 +143,7 @@ export function AppTopNav() {
                 type="button"
                 onClick={() => setIsMenuOpen((prev) => !prev)}
                 className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#374151] transition hover:bg-[#e9eef5]"
-                aria-label="더보기"
+                aria-label="더 보기"
               >
                 <Ellipsis className="h-5 w-5" />
               </button>
@@ -173,8 +155,9 @@ export function AppTopNav() {
                     <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface-soft)] px-3 py-3 ring-1 ring-[var(--line)]">
                       <Search className="h-4 w-4 text-[#6b7280]" />
                       <input
-                        value={searchKeyword}
-                        onChange={(event) => setSearchKeyword(event.target.value)}
+                        key={searchKeyword}
+                        ref={searchInputRef}
+                        defaultValue={searchKeyword}
                         placeholder="뉴스 검색어 입력"
                         className="w-full bg-transparent text-sm text-[#111827] outline-none"
                       />
@@ -182,17 +165,18 @@ export function AppTopNav() {
                   </form>
 
                   <div className="mt-3 rounded-[20px] bg-[var(--surface-soft)] px-4 py-4">
-                    <p className="text-xs font-semibold text-[#6b7280]">로그인 정보</p>
-                    <p className="mt-1 text-sm font-bold text-[#111827]">
-                      {isLoggedIn ? '로그인됨' : '로그인 필요'}
+                    <p className="text-xs font-semibold text-[#6b7280]">개인화 상태</p>
+                    <p className="mt-1 text-sm font-bold text-[#111827]">익명 프로필 활성화</p>
+                    <p className="mt-2 text-xs leading-5 text-[#6b7280]">
+                      로그인 없이 이 기기에서만 개인화 신호를 저장하는 구조로 전환했습니다.
                     </p>
                     <Link
-                      href={isLoggedIn ? '/mypage' : '/login'}
+                      href="/mypage"
                       onClick={() => setIsMenuOpen(false)}
                       className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]"
                     >
-                      <LogIn className="h-4 w-4" />
-                      <span>{isLoggedIn ? '계정 정보 보기' : '로그인하러 가기'}</span>
+                      <Brain className="h-4 w-4" />
+                      <span>내 피드 설계 보기</span>
                     </Link>
                   </div>
                 </div>

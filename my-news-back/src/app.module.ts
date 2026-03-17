@@ -6,9 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
 import { NewsModule } from './news/news.module';
-import { BookmarkModule } from './bookmark/bookmark.module';
 import { WeatherModule } from './weather/weather.module';
 
 @Module({
@@ -24,9 +22,7 @@ import { WeatherModule } from './weather/weather.module';
       },
     ]),
     PrismaModule,
-    AuthModule,
     NewsModule,
-    BookmarkModule,
     WeatherModule,
   ],
   controllers: [AppController],

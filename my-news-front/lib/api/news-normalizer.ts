@@ -1,4 +1,4 @@
-import { Bookmark, BookmarksListResponse, News, NewsListResponse } from '@/types';
+import { News, NewsListResponse } from '@/types';
 
 type ApiNews = {
   id: string;
@@ -20,10 +20,6 @@ type ApiNewsListResponse = {
   items: ApiNews[];
   nextCursor: string | null;
   hasMore: boolean;
-};
-
-type ApiBookmark = Omit<Bookmark, 'news'> & {
-  news: ApiNews;
 };
 
 function normalizeImageUrl(url?: string | null): string | null {
@@ -71,17 +67,5 @@ export function normalizeNewsListResponse(response: ApiNewsListResponse): NewsLi
   return {
     ...response,
     items: response.items.map(normalizeNews),
-  };
-}
-
-export function normalizeBookmarksResponse(
-  response: BookmarksListResponse & { items: ApiBookmark[] }
-): BookmarksListResponse {
-  return {
-    ...response,
-    items: response.items.map((bookmark) => ({
-      ...bookmark,
-      news: normalizeNews(bookmark.news),
-    })),
   };
 }

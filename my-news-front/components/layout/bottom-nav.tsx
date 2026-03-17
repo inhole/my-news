@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Newspaper, UserRound } from 'lucide-react';
+import { Brain, Home, Newspaper } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: '홈', icon: Home },
   { href: '/news', label: '뉴스', icon: Newspaper },
-  { href: '/mypage', label: '마이', icon: UserRound },
+  { href: '/mypage', label: '피드', icon: Brain },
 ];
 
 export function BottomNav() {

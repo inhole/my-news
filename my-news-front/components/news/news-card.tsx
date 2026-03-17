@@ -1,10 +1,8 @@
 'use client';
 
-import type { MouseEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Bookmark, Clock, ExternalLink } from 'lucide-react';
-import { useAddBookmark } from '@/hooks/use-queries';
+import { Clock, ExternalLink } from 'lucide-react';
 import { News } from '@/types';
 
 interface NewsCardProps {
@@ -34,19 +32,6 @@ function FallbackThumb({ title }: { title: string }) {
 }
 
 export function NewsCard({ news }: NewsCardProps) {
-  const addBookmark = useAddBookmark();
-
-  const handleBookmarkClick = async (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    try {
-      await addBookmark.mutateAsync(news.id);
-    } catch {
-      return;
-    }
-  };
-
   return (
     <Link href={`/news/${news.id}`} className="block">
       <article className="news-item-shell toss-card news-item-row relative flex overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
@@ -67,30 +52,17 @@ export function NewsCard({ news }: NewsCardProps) {
               </h3>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={handleBookmarkClick}
-                disabled={addBookmark.isPending}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4e5968] transition hover:bg-[#e9eef5] disabled:opacity-50"
-                aria-label="북마크"
-                title="북마크"
-              >
-                <Bookmark className="h-3 w-3" />
-              </button>
-
-              <a
-                href={news.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(event) => event.stopPropagation()}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4e5968] transition hover:bg-[#e9eef5]"
-                aria-label="원본 보기"
-                title="원본 보기"
-              >
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
+            <a
+              href={news.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => event.stopPropagation()}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4e5968] transition hover:bg-[#e9eef5]"
+              aria-label="원문 보기"
+              title="원문 보기"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
