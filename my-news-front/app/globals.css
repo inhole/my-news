@@ -16,7 +16,6 @@
   --danger: #f04452;
   --success: #00a86b;
   --bottom-nav-height: 66px;
-  --app-top-nav-offset: 0px;
   --page-pad-x: 8px;
   --page-pad-y: 10px;
   --news-list-pad-x: 0px;
@@ -72,34 +71,36 @@ body {
 }
 
 .app-main {
-  padding:
-    calc(var(--app-top-nav-offset) + var(--page-pad-y))
-    var(--page-pad-x)
-    calc(var(--page-pad-y) + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-  transition: padding-top 280ms ease-out;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable both-edges;
 }
 
+.app-content-shell {
+  padding:
+    var(--page-pad-y)
+    var(--page-pad-x)
+    calc(var(--page-pad-y) + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
 .top-nav-shell {
-  position: fixed;
-  inset-inline: 0;
+  position: sticky;
   top: 0;
   z-index: 50;
-  transition: height 300ms ease-out;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(248, 251, 255, 0.78));
+  backdrop-filter: blur(10px);
 }
 
 .top-nav-frame {
   width: 100%;
-  max-width: 980px;
-  margin-inline: auto;
 }
 
 .top-nav-surface {
   overflow: visible;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
   backdrop-filter: blur(8px);
 }
 
@@ -144,7 +145,7 @@ body {
 }
 
 .top-nav-tabs-wrap {
-  padding: 0 var(--top-nav-pad-x) 2px;
+  padding: 0 var(--top-nav-pad-x) 4px;
 }
 
 .top-nav-tabs-news {
@@ -217,6 +218,10 @@ body {
 
 .item-inner-pad {
   padding: var(--item-pad-y) var(--item-pad-x);
+}
+
+.home-compact-thumb {
+  flex-basis: 96px;
 }
 
 .toss-card {

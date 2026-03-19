@@ -9,9 +9,9 @@ type HomeTab = 'weather' | 'headline' | 'trending' | 'personalized';
 
 const homeTabs: Array<{ id: HomeTab; label: string }> = [
   { id: 'weather', label: '날씨' },
+  { id: 'personalized', label: '맞춤 뉴스' },
   { id: 'headline', label: '헤드라인' },
   { id: 'trending', label: '실검' },
-  { id: 'personalized', label: '맞춤 뉴스' },
 ];
 
 function formatTodayLabel() {
@@ -28,7 +28,6 @@ export function AppTopNav() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
-  const headerRef = useRef<HTMLElement>(null);
   const lastScrollTopRef = useRef(0);
   const tickingRef = useRef(false);
   const isHomeRoute = pathname === '/';
@@ -72,21 +71,6 @@ export function AppTopNav() {
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const updateOffset = () => {
-      const nextOffset = headerRef.current ? `${headerRef.current.offsetHeight}px` : '0px';
-      document.documentElement.style.setProperty('--app-top-nav-offset', nextOffset);
-    };
-
-    updateOffset();
-    window.addEventListener('resize', updateOffset);
-
-    return () => {
-      window.removeEventListener('resize', updateOffset);
-      document.documentElement.style.setProperty('--app-top-nav-offset', '0px');
-    };
-  }, [collapsed, isHomeRoute, isNewsRoute, selectedCategory, selectedHomeTab]);
-
   const handleCategoryChange = (categorySlug: string) => {
     const nextParams = new URLSearchParams(searchParams.toString());
     if (categorySlug) nextParams.set('category', categorySlug);
@@ -102,7 +86,7 @@ export function AppTopNav() {
   };
 
   return (
-    <header ref={headerRef} className="top-nav-shell">
+    <header className="top-nav-shell">
       <div className="top-nav-frame">
         <div className="top-nav-surface">
           <div className={`top-nav-head ${collapsed ? 'top-nav-head-collapsed' : ''}`}>

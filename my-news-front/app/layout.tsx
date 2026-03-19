@@ -20,14 +20,14 @@ export default function RootLayout({
       <body>
         <QueryProvider>
           <div className="flex h-[100svh] flex-col overflow-hidden">
-            <Suspense fallback={null}>
-              <AppTopNav />
-            </Suspense>
             <main
               id="app-scroll-container"
               className="app-main mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-x-hidden overflow-y-auto"
             >
-              {children}
+              <Suspense fallback={null}>
+                <AppTopNav />
+              </Suspense>
+              <div className="app-content-shell">{children}</div>
             </main>
             <BottomNav />
           </div>
