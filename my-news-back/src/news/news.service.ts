@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import type { AnyNode, Element } from 'domhandler';
+import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 
@@ -42,12 +43,23 @@ interface ContentBlock {
   text: string;
 }
 
+interface SummaryTarget {
+  id: string;
+  title: string;
+  description: string | null;
+  content: string | null;
+  categoryName: string;
+  summaryHash: string;
+}
+
 @Injectable()
 export class NewsService {
   private readonly logger = new Logger(NewsService.name);
   private readonly naverClientId: string;
   private readonly naverClientSecret: string;
   private readonly naverNewsApiUrl: string;
+  private readonly openAiApiKey: string;
+  private readonly openAiModel: string;
 
   constructor(
     private prisma: PrismaService,
@@ -60,6 +72,9 @@ export class NewsService {
     this.naverNewsApiUrl =
       this.configService.get<string>('NAVER_NEWS_API_URL') ||
       'https://openapi.naver.com/v1/search/news.json';
+    this.openAiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
+    this.openAiModel =
+      this.configService.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini';
   }
 
   async getNews(
@@ -184,6 +199,7 @@ export class NewsService {
       });
 
       let savedCount = 0;
+      const summaryTargets: SummaryTarget[] = [];
 
       for (const article of articles) {
         const originalUrl = article.originallink;
@@ -202,9 +218,12 @@ export class NewsService {
         const existingNews = await this.prisma.news.findUnique({
           where: { url },
           select: {
+            id: true,
             urlToImage: true,
             content: true,
             contentHtml: true,
+            summaryHash: true,
+            summaryLines: true,
           },
         });
 
@@ -237,8 +256,14 @@ export class NewsService {
         const resolvedSource = crawledMetadata?.source || source;
         const resolvedImageUrl =
           crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
+        const nextSummaryHash = this.buildSummaryHash({
+          title: resolvedTitle,
+          description: resolvedDescription,
+          content: resolvedContent,
+          categoryName: categoryRecord.name,
+        });
 
-        await this.prisma.news.upsert({
+        const savedNews = await this.prisma.news.upsert({
           where: { url },
           update: {
             title: resolvedTitle,
@@ -263,9 +288,31 @@ export class NewsService {
             author: null,
             categoryId: categoryRecord.id,
           },
+          select: {
+            id: true,
+          },
         });
 
+        if (
+          !existingNews ||
+          existingNews.summaryHash !== nextSummaryHash ||
+          !existingNews.summaryLines?.length
+        ) {
+          summaryTargets.push({
+            id: savedNews.id,
+            title: resolvedTitle,
+            description: resolvedDescription,
+            content: resolvedContent,
+            categoryName: categoryRecord.name,
+            summaryHash: nextSummaryHash,
+          });
+        }
+
         savedCount += 1;
+      }
+
+      if (summaryTargets.length > 0) {
+        await this.generateAndStoreSummaries(summaryTargets);
       }
 
       this.logger.log(
@@ -298,6 +345,163 @@ export class NewsService {
 
     const parsed = new Date(pubDate);
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  private buildSummaryHash(input: {
+    title: string;
+    description?: string | null;
+    content?: string | null;
+    categoryName?: string | null;
+  }) {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          title: this.normalizeText(input.title),
+          description: this.normalizeText(input.description || ''),
+          content: this.normalizeText(input.content || ''),
+          categoryName: this.normalizeText(input.categoryName || ''),
+        }),
+      )
+      .digest('hex');
+  }
+
+  private async generateAndStoreSummaries(targets: SummaryTarget[]) {
+    if (targets.length === 0) {
+      return;
+    }
+
+    const batches = this.chunkArray(targets, 5);
+
+    for (const batch of batches) {
+      const summaries = await this.summarizeBatch(batch);
+
+      await Promise.all(
+        batch.map(async (target) => {
+          const lines =
+            summaries.get(target.id) ?? this.buildFallbackSummary(target);
+
+          await this.prisma.news.update({
+            where: { id: target.id },
+            data: {
+              summaryLines: lines,
+              summaryHash: target.summaryHash,
+            },
+          });
+        }),
+      );
+    }
+  }
+
+  private async summarizeBatch(targets: SummaryTarget[]) {
+    if (!this.openAiApiKey) {
+      return new Map<string, string[]>();
+    }
+
+    const prompt = [
+      '아래 뉴스 여러 건에 대해 한국어 3줄 요약을 JSON으로 반환해 주세요.',
+      '각 기사마다 lines는 반드시 3개의 짧은 문장으로 작성해 주세요.',
+      '출력은 JSON 배열만 반환해 주세요.',
+      '형식: [{"id":"기사ID","lines":["줄1","줄2","줄3"]}]',
+      '',
+      ...targets.map((target, index) =>
+        [
+          `기사 ${index + 1}`,
+          `id: ${target.id}`,
+          `카테고리: ${this.normalizeText(target.categoryName)}`,
+          `제목: ${this.normalizeText(target.title)}`,
+          `설명: ${this.normalizeText(target.description || '')}`,
+          `본문: ${this.normalizeText(target.content || '')}`,
+          '',
+        ].join('\n'),
+      ),
+    ].join('\n');
+
+    try {
+      const response = await fetch(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.openAiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: this.openAiModel,
+            temperature: 0.2,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        this.logger.warn(
+          `Summary batch request failed with status ${response.status}`,
+        );
+        return new Map<string, string[]>();
+      }
+
+      const data = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        return new Map<string, string[]>();
+      }
+
+      const parsed = JSON.parse(content) as Array<{
+        id?: string;
+        lines?: string[];
+      }>;
+      return new Map(
+        parsed
+          .filter(
+            (item): item is { id: string; lines: string[] } =>
+              Boolean(item?.id) &&
+              Array.isArray(item?.lines) &&
+              item.lines.length >= 3,
+          )
+          .map((item) => [
+            item.id,
+            item.lines
+              .slice(0, 3)
+              .map((line) => this.normalizeText(line))
+              .filter(Boolean),
+          ]),
+      );
+    } catch (error) {
+      this.logger.warn(`Summary batch generation failed: ${String(error)}`);
+      return new Map<string, string[]>();
+    }
+  }
+
+  private buildFallbackSummary(target: SummaryTarget) {
+    const description = this.normalizeText(target.description || '');
+    const content = this.normalizeText(target.content || '');
+    const sentences = [description, ...content.split(/\n{2,}|(?<=[.!?])\s+/)]
+      .map((sentence) => this.normalizeText(sentence))
+      .filter(Boolean);
+
+    return [
+      `${target.categoryName} 핵심: ${this.normalizeText(target.title)}`.slice(
+        0,
+        120,
+      ),
+      (sentences[0] || '핵심 내용을 정리 중입니다.').slice(0, 120),
+      (sentences[1] || '본문 분석이 끝나면 추가 요약을 제공합니다.').slice(
+        0,
+        120,
+      ),
+    ];
+  }
+
+  private chunkArray<T>(items: T[], size: number) {
+    const chunks: T[][] = [];
+
+    for (let index = 0; index < items.length; index += size) {
+      chunks.push(items.slice(index, index + size));
+    }
+
+    return chunks;
   }
 
   private async fetchArticleMetadata(
@@ -356,7 +560,10 @@ export class NewsService {
       },
     });
 
-    const html = this.decodeHtmlResponse(response.data, response.headers['content-type']);
+    const html = this.decodeHtmlResponse(
+      response.data,
+      response.headers['content-type'],
+    );
     if (!html) {
       return {
         title: null,
@@ -457,7 +664,8 @@ export class NewsService {
       return bodyContentData;
     }
 
-    const fallbackText = this.preferReadableText(fallbackDescription, '') || null;
+    const fallbackText =
+      this.preferReadableText(fallbackDescription, '') || null;
     return {
       text: fallbackText,
       html: this.buildParagraphHtml(fallbackText),
@@ -715,17 +923,18 @@ export class NewsService {
       .trim();
   }
 
-  private preferReadableText(primary?: string | null, fallback?: string): string {
+  private preferReadableText(
+    primary?: string | null,
+    fallback?: string,
+  ): string {
     const normalizedPrimary = this.normalizeText(primary || '');
     const normalizedFallback = this.normalizeText(fallback || '');
 
     if (
       normalizedPrimary &&
       !this.isLikelyCorruptedText(normalizedPrimary) &&
-      normalizedPrimary.length >= Math.min(
-        10,
-        Math.max(1, normalizedFallback.length),
-      )
+      normalizedPrimary.length >=
+        Math.min(10, Math.max(1, normalizedFallback.length))
     ) {
       return normalizedPrimary;
     }

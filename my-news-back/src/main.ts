@@ -36,7 +36,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('My News API')
-    .setDescription('익명 개인화 기반 뉴스와 위치 날씨를 제공하는 My News API 문서')
+    .setDescription(
+      '익명 개인화 기반 뉴스와 위치 날씨를 제공하는 My News API 문서',
+    )
     .setVersion('1.0')
     .addTag('news', '뉴스 조회, 카테고리 필터, 검색')
     .addTag('weather', '위치 기반 날씨 조회 (Open-Meteo)')

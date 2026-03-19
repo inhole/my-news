@@ -16,7 +16,7 @@ import {
   type PersonalizedNewsItem,
 } from '@/lib/personalization/personalized-feed';
 import { trackNewsInterest } from '@/lib/personalization/signal-tracker';
-import type { News, NewsSummary } from '@/types';
+import type { News } from '@/types';
 
 type HomeTab = 'weather' | 'headline' | 'trending' | 'personalized';
 
@@ -375,7 +375,6 @@ function getProfileSnapshot() {
 function HomeContent() {
   const searchParams = useSearchParams();
   const selectedTab = (searchParams.get('tab') as HomeTab) || 'weather';
-  const [summaries, setSummaries] = useState<Record<string, string[]>>({});
   const [personalizedVisibleCount, setPersonalizedVisibleCount] = useState(PERSONALIZED_PAGE_SIZE);
   const [isLoadingMorePersonalized, setIsLoadingMorePersonalized] = useState(false);
   const personalizedSentinelRef = useRef<HTMLDivElement>(null);
@@ -402,13 +401,16 @@ function HomeContent() {
     () =>
       rankPersonalizedNews(articles, profile).map((article) => ({
         ...article,
-        summaryLines: summaries[article.id] ?? [
-          '요약을 준비하고 있습니다.',
-          '관심 카테고리와 키워드를 반영해 정렬했습니다.',
-          '본문 분석이 끝나면 핵심 3줄을 표시합니다.',
-        ],
+        summaryLines:
+          article.summaryLines && article.summaryLines.length > 0
+            ? article.summaryLines
+            : [
+                '요약을 준비하고 있습니다.',
+                '관심 카테고리와 키워드를 반영해 정렬했습니다.',
+                '본문 분석이 끝나면 핵심 3줄을 표시합니다.',
+              ],
       })),
-    [articles, profile, summaries],
+    [articles, profile],
   );
   const visiblePersonalizedArticles = useMemo(
     () => personalizedArticles.slice(0, personalizedVisibleCount),
@@ -420,46 +422,6 @@ function HomeContent() {
   useEffect(() => {
     setPersonalizedVisibleCount(PERSONALIZED_PAGE_SIZE);
   }, [profile?.updatedAt]);
-
-  useEffect(() => {
-    if (selectedTab !== 'personalized' || personalizedArticles.length === 0) {
-      return;
-    }
-
-    const targets = personalizedArticles.filter((article) => !summaries[article.id]).slice(0, 5);
-    if (targets.length === 0) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    fetch('/api/ai/summarize', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        articles: targets.map((article) => ({
-          id: article.id,
-          title: article.title,
-          description: article.description,
-          content: article.content,
-          categoryName: article.category.name,
-        })),
-      }),
-      signal: controller.signal,
-    })
-      .then((response) => response.json())
-      .then((payload: { summaries?: NewsSummary[] }) => {
-        const nextSummaries = Object.fromEntries(
-          (payload.summaries ?? []).map((summary) => [summary.id, summary.lines]),
-        );
-        setSummaries((current) => ({ ...current, ...nextSummaries }));
-      })
-      .catch(() => undefined);
-
-    return () => controller.abort();
-  }, [personalizedArticles, selectedTab, summaries]);
 
   useEffect(() => {
     const sentinel = personalizedSentinelRef.current;

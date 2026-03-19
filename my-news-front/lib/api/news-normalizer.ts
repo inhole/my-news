@@ -6,6 +6,7 @@ type ApiNews = {
   description: string | null;
   content?: string | null;
   contentHtml?: string | null;
+  summaryLines?: string[];
   url: string;
   imageUrl?: string | null;
   urlToImage?: string | null;
@@ -53,6 +54,7 @@ export function normalizeNews(news: ApiNews): News {
     description: news.description ?? null,
     content: news.content ?? null,
     contentHtml: news.contentHtml ?? null,
+    summaryLines: Array.isArray(news.summaryLines) ? news.summaryLines : [],
     url: news.url,
     imageUrl: normalizeImageUrl(news.imageUrl ?? news.urlToImage),
     publishedAt: news.publishedAt,

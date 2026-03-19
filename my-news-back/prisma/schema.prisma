@@ -25,6 +25,8 @@ model News {
   description String?
   content     String?
   contentHtml String?
+  summaryLines String[]  @default([])
+  summaryHash  String?
   url         String     @unique
   urlToImage  String?
   publishedAt DateTime

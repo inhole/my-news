@@ -32,7 +32,7 @@
 - 정렬은 `rankPersonalizedNews(articles, profile)` 결과를 그대로 사용합니다.
 - 개인화 프로필에는 익명 사용자 기준의 카테고리 선호도, 키워드 반응, 최근 행동 이력이 반영됩니다.
 - 각 뉴스 카드에는 3줄 요약이 붙습니다.
-  - `/api/ai/summarize` 결과가 있으면 AI 요약을 사용합니다.
+  - 백엔드 배치가 생성해 DB에 저장한 요약을 사용합니다.
   - 아직 생성되지 않았으면 기본 안내 문구 3줄을 임시로 노출합니다.
 - 노출 방식은 무한 스크롤입니다.
   - 최초 8건을 노출합니다.
@@ -84,12 +84,7 @@ npm run start:dev --workspace my-news-back
 ```env
 NEXT_PUBLIC_API_BASE_URL=/api
 BACKEND_BASE_URL=http://localhost:3000
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1-mini
 ```
-
-- `OPENAI_API_KEY`가 있으면 맞춤 뉴스 3줄 요약에 OpenAI API를 사용합니다.
-- 키가 없으면 서버에서 추출형 요약으로 안전하게 대체합니다.
 
 백엔드 필수:
 
@@ -100,6 +95,8 @@ OPENAI_MODEL=gpt-4.1-mini
 백엔드 선택:
 
 - `NAVER_NEWS_API_URL`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
 - `OPEN_METEO_API_URL`
 - `OPEN_METEO_AIR_QUALITY_API_URL`
 - `PORT`

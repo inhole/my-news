@@ -77,7 +77,9 @@ export class WeatherService {
     });
 
     if (cached && cached.expiresAt > new Date()) {
-      this.logger.log(`Cache hit for coordinates: ${roundedLat}, ${roundedLon}`);
+      this.logger.log(
+        `Cache hit for coordinates: ${roundedLat}, ${roundedLon}`,
+      );
       return this.transformWeatherPayload(
         roundedLat,
         roundedLon,
@@ -88,19 +90,22 @@ export class WeatherService {
 
     try {
       const [forecastResponse, airQualityResponse] = await Promise.all([
-        axios.get<OpenMeteoForecastPayload>(`${this.openMeteoApiUrl}/forecast`, {
-          params: {
-            latitude: roundedLat,
-            longitude: roundedLon,
-            current:
-              'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation',
-            hourly: 'temperature_2m,weather_code',
-            daily:
-              'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset',
-            forecast_days: 7,
-            timezone: 'auto',
+        axios.get<OpenMeteoForecastPayload>(
+          `${this.openMeteoApiUrl}/forecast`,
+          {
+            params: {
+              latitude: roundedLat,
+              longitude: roundedLon,
+              current:
+                'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation',
+              hourly: 'temperature_2m,weather_code',
+              daily:
+                'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset',
+              forecast_days: 7,
+              timezone: 'auto',
+            },
           },
-        }),
+        ),
         axios.get<OpenMeteoAirQualityPayload>(
           `${this.openMeteoAirQualityApiUrl}/air-quality`,
           {
@@ -142,7 +147,9 @@ export class WeatherService {
         },
       });
 
-      this.logger.log(`Fetched and cached weather for: ${roundedLat}, ${roundedLon}`);
+      this.logger.log(
+        `Fetched and cached weather for: ${roundedLat}, ${roundedLon}`,
+      );
       return this.transformWeatherPayload(
         roundedLat,
         roundedLon,

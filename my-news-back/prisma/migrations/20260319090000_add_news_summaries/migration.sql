@@ -1,0 +1,3 @@
+ALTER TABLE "News"
+ADD COLUMN "summaryLines" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN "summaryHash" TEXT;
