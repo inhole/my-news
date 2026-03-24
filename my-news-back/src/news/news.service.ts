@@ -52,6 +52,18 @@ interface SummaryTarget {
   summaryHash: string;
 }
 
+interface NewsSummarySource {
+  id: string;
+  title: string;
+  description: string | null;
+  content: string | null;
+  summaryLines: string[];
+  summaryHash: string | null;
+  category: {
+    name: string;
+  } | null;
+}
+
 @Injectable()
 export class NewsService {
   private readonly logger = new Logger(NewsService.name);
@@ -126,21 +138,46 @@ export class NewsService {
     const hasMore = news.length > limit;
     const items = hasMore ? news.slice(0, -1) : news;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
+    const ensuredSummaryMap = await this.ensureSummariesForNews(items);
 
     return {
-      items,
+      items: items.map((item) => ({
+        ...item,
+        summaryLines: ensuredSummaryMap.get(item.id) ?? item.summaryLines,
+        summary: this.buildShortSummary(
+          ensuredSummaryMap.get(item.id) ?? item.summaryLines,
+          item.description,
+          item.content,
+        ),
+      })),
       nextCursor,
       hasMore,
     };
   }
 
   async getNewsById(id: string) {
-    return this.prisma.news.findUnique({
+    const news = await this.prisma.news.findUnique({
       where: { id },
       include: {
         category: true,
       },
     });
+
+    if (!news) {
+      return null;
+    }
+
+    const ensuredSummaryMap = await this.ensureSummariesForNews([news]);
+
+    return {
+      ...news,
+      summaryLines: ensuredSummaryMap.get(news.id) ?? news.summaryLines,
+      summary: this.buildShortSummary(
+        ensuredSummaryMap.get(news.id) ?? news.summaryLines,
+        news.description,
+        news.content,
+      ),
+    };
   }
 
   async searchNews(query: string, cursor?: string, limit: number = 20) {
@@ -365,12 +402,74 @@ export class NewsService {
       .digest('hex');
   }
 
+  private buildSummaryTarget(source: NewsSummarySource): SummaryTarget | null {
+    const categoryName = this.normalizeText(source.category?.name || '');
+    const nextSummaryHash = this.buildSummaryHash({
+      title: source.title,
+      description: source.description,
+      content: source.content,
+      categoryName,
+    });
+
+    if (
+      source.summaryLines?.length >= 3 &&
+      source.summaryHash === nextSummaryHash
+    ) {
+      return null;
+    }
+
+    return {
+      id: source.id,
+      title: source.title,
+      description: source.description,
+      content: source.content,
+      categoryName,
+      summaryHash: nextSummaryHash,
+    };
+  }
+
+  private async ensureSummariesForNews(newsItems: NewsSummarySource[]) {
+    const targets = newsItems
+      .map((item) => this.buildSummaryTarget(item))
+      .filter((target): target is SummaryTarget => Boolean(target));
+
+    if (targets.length === 0) {
+      return new Map<string, string[]>();
+    }
+
+    return this.generateAndStoreSummaries(targets);
+  }
+
+  private buildShortSummary(
+    summaryLines?: string[] | null,
+    description?: string | null,
+    content?: string | null,
+  ) {
+    const candidate = Array.isArray(summaryLines)
+      ? summaryLines
+          .map((line) => this.normalizeText(line))
+          .filter(Boolean)
+          .join(' ')
+      : '';
+
+    const fallback =
+      this.normalizeText(description || '') || this.normalizeText(content || '');
+    const merged = candidate || fallback;
+
+    if (!merged) {
+      return null;
+    }
+
+    return merged.slice(0, 120);
+  }
+
   private async generateAndStoreSummaries(targets: SummaryTarget[]) {
     if (targets.length === 0) {
-      return;
+      return new Map<string, string[]>();
     }
 
     const batches = this.chunkArray(targets, 5);
+    const storedSummaries = new Map<string, string[]>();
 
     for (const batch of batches) {
       const summaries = await this.summarizeBatch(batch);
@@ -379,6 +478,8 @@ export class NewsService {
         batch.map(async (target) => {
           const lines =
             summaries.get(target.id) ?? this.buildFallbackSummary(target);
+
+          storedSummaries.set(target.id, lines);
 
           await this.prisma.news.update({
             where: { id: target.id },
@@ -390,6 +491,8 @@ export class NewsService {
         }),
       );
     }
+
+    return storedSummaries;
   }
 
   private async summarizeBatch(targets: SummaryTarget[]) {

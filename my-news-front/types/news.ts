@@ -6,6 +6,7 @@ export interface News {
   description: string | null;
   content?: string | null;
   contentHtml?: string | null;
+  summary?: string | null;
   summaryLines?: string[];
   url: string;
   imageUrl: string | null;
@@ -24,5 +25,5 @@ export interface NewsListResponse {
 
 export interface NewsSummary {
   id: string;
-  lines: string[];
+  summary: string;
 }

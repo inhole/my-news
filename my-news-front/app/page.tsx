@@ -163,14 +163,8 @@ function EditorialList({
                 {article.title}
               </h3>
 
-              {personalized && personalizedArticle.summaryLines?.length ? (
-                <div className="mt-3 space-y-1">
-                  {personalizedArticle.summaryLines.slice(0, 2).map((line, index) => (
-                    <p key={`${article.id}-${index}`} className="line-clamp-1 text-sm leading-6 text-[#5b6573]">
-                      {line}
-                    </p>
-                  ))}
-                </div>
+              {personalized && personalizedArticle.summary ? (
+                <p className="mt-3 text-sm leading-6 text-[#5b6573]">{personalizedArticle.summary}</p>
               ) : article.description ? (
                 <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#5b6573]">{article.description}</p>
               ) : null}

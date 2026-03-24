@@ -6,6 +6,7 @@ type ApiNews = {
   description: string | null;
   content?: string | null;
   contentHtml?: string | null;
+  summary?: string | null;
   summaryLines?: string[];
   url: string;
   imageUrl?: string | null;
@@ -47,6 +48,24 @@ function normalizeImageUrl(url?: string | null): string | null {
   }
 }
 
+function normalizeSummary(summary?: string | null, summaryLines?: string[]): string | null {
+  const normalizedSummary = summary?.trim();
+  if (normalizedSummary) {
+    return normalizedSummary.slice(0, 120);
+  }
+
+  if (!Array.isArray(summaryLines) || summaryLines.length === 0) {
+    return null;
+  }
+
+  const joined = summaryLines
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' ');
+
+  return joined ? joined.slice(0, 120) : null;
+}
+
 export function normalizeNews(news: ApiNews): News {
   return {
     id: news.id,
@@ -54,6 +73,7 @@ export function normalizeNews(news: ApiNews): News {
     description: news.description ?? null,
     content: news.content ?? null,
     contentHtml: news.contentHtml ?? null,
+    summary: normalizeSummary(news.summary, news.summaryLines),
     summaryLines: Array.isArray(news.summaryLines) ? news.summaryLines : [],
     url: news.url,
     imageUrl: normalizeImageUrl(news.imageUrl ?? news.urlToImage),
