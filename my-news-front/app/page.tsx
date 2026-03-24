@@ -3,9 +3,8 @@
 import { Suspense, useEffect, useMemo, useRef, useSyncExternalStore, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight, Clock, Flame, Newspaper } from 'lucide-react';
+import { ChevronRight, Clock, Flame, Newspaper, Sparkles, TrendingUp } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { WeatherWidget } from '@/components/layout/weather-widget';
 import { EmptyState } from '@/components/ui/empty';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -47,6 +46,15 @@ function formatRelativeTime(dateString: string) {
   return publishedAt.toLocaleDateString('ko-KR');
 }
 
+function formatPublishedLabel(dateString: string) {
+  return new Date(dateString).toLocaleString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function FallbackThumb({ title }: { title: string }) {
   return (
     <div className="absolute inset-0 flex items-end bg-[linear-gradient(145deg,#dce9ff_0%,#bdd5ff_100%)] p-4">
@@ -57,17 +65,27 @@ function FallbackThumb({ title }: { title: string }) {
 
 function HomeLoading() {
   return (
-    <div className="space-y-4">
-      <div className="toss-card section-pad-sm">
-        {[...Array(5)].map((_, index) => (
-          <div key={index} className={`flex gap-4 py-4 ${index < 4 ? 'border-b border-[var(--line)]' : ''}`}>
-            <div className="h-24 w-24 shrink-0 rounded-[22px] bg-[#edf2f7]" />
-            <div className="flex-1 space-y-3">
-              <div className="h-3 w-20 rounded-full bg-[#eaf3ff]" />
-              <div className="h-4 w-full rounded-full bg-[#edf2f7]" />
-              <div className="h-4 w-3/4 rounded-full bg-[#edf2f7]" />
-              <div className="h-3 w-24 rounded-full bg-[#edf2f7]" />
+    <div className="home-overview-stack">
+      <div className="home-hero-skeleton animate-pulse" />
+      <div className="home-brief-grid">
+        {[...Array(3)].map((_, index) => (
+          <div key={index} className="home-brief-card animate-pulse">
+            <div className="h-3 w-16 rounded-full bg-[#dce8f9]" />
+            <div className="mt-4 h-6 w-24 rounded-full bg-[#eaf1fb]" />
+            <div className="mt-3 h-4 w-full rounded-full bg-[#edf2f7]" />
+            <div className="mt-2 h-4 w-3/4 rounded-full bg-[#edf2f7]" />
+          </div>
+        ))}
+      </div>
+      <div className="home-section-surface animate-pulse">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className={`editorial-list-row ${index < 3 ? 'border-b border-[var(--line)]' : ''}`}>
+            <div className="min-w-0 flex-1">
+              <div className="h-3 w-20 rounded-full bg-[#dce8f9]" />
+              <div className="mt-3 h-5 w-full rounded-full bg-[#edf2f7]" />
+              <div className="mt-2 h-5 w-4/5 rounded-full bg-[#edf2f7]" />
             </div>
+            <div className="h-24 w-24 rounded-[24px] bg-[#edf2f7]" />
           </div>
         ))}
       </div>
@@ -78,29 +96,25 @@ function HomeLoading() {
 function SectionHeader({
   eyebrow,
   title,
+  description,
   href,
   linkLabel,
 }: {
   eyebrow?: string;
   title: string;
+  description?: string;
   href?: string;
   linkLabel?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-1 pb-2">
-      <div>
-        {eyebrow ? (
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{eyebrow}</p>
-        ) : null}
-        <h2 className={`${eyebrow ? 'mt-1' : ''} text-xl font-bold tracking-[-0.02em] text-[var(--text)]`}>
-          {title}
-        </h2>
+    <div className="flex items-end justify-between gap-4">
+      <div className="min-w-0">
+        {eyebrow ? <p className="home-eyebrow">{eyebrow}</p> : null}
+        <h2 className="home-section-title">{title}</h2>
+        {description ? <p className="home-section-description">{description}</p> : null}
       </div>
       {href && linkLabel ? (
-        <Link
-          href={href}
-          className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--primary-strong)] transition hover:bg-[var(--primary-weak)]"
-        >
+        <Link href={href} className="home-inline-link">
           <span>{linkLabel}</span>
           <ChevronRight className="h-4 w-4" />
         </Link>
@@ -109,18 +123,22 @@ function SectionHeader({
   );
 }
 
-function CompactNewsList({
+function EditorialList({
   articles,
   personalized = false,
   ranked = false,
+  limit,
 }: {
   articles: Array<News | PersonalizedNewsItem | RankedTrendingNews>;
   personalized?: boolean;
   ranked?: boolean;
+  limit?: number;
 }) {
+  const visibleArticles = typeof limit === 'number' ? articles.slice(0, limit) : articles;
+
   return (
-    <div className="space-y-2">
-      {articles.map((article) => {
+    <div className="editorial-list">
+      {visibleArticles.map((article) => {
         const personalizedArticle = article as PersonalizedNewsItem;
         const rankedArticle = article as RankedTrendingNews;
 
@@ -129,41 +147,35 @@ function CompactNewsList({
             key={article.id}
             href={`/news/${article.id}`}
             onClick={() => trackNewsInterest(article, personalized ? 2 : 1)}
-            className="item-inner-pad flex items-start gap-3 rounded-[24px] transition hover:bg-[var(--surface-soft)]"
+            className="editorial-list-row"
           >
-            {ranked ? (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--primary-weak)] text-sm font-bold text-[var(--primary-strong)]">
-                {rankedArticle.rank}
-              </div>
-            ) : null}
-
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {ranked ? <span className="editorial-rank">{rankedArticle.rank}</span> : null}
                 <p className="text-[12px] font-semibold text-[var(--primary-strong)]">{article.category.name}</p>
-                {ranked && rankedArticle.keyword ? (
-                  <span className="rounded-full bg-[#fff3e8] px-2 py-0.5 text-[11px] font-semibold text-[#d97706]">
-                    {rankedArticle.keyword}
-                  </span>
-                ) : null}
+                {ranked && rankedArticle.keyword ? <span className="editorial-chip">{rankedArticle.keyword}</span> : null}
                 {personalized && personalizedArticle.matchedKeywords?.[0] ? (
-                  <span className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] text-[#4b5563]">
-                    #{personalizedArticle.matchedKeywords[0]}
-                  </span>
+                  <span className="editorial-chip">#{personalizedArticle.matchedKeywords[0]}</span>
                 ) : null}
               </div>
-              <h3 className="mt-1 line-clamp-2 text-[18px] font-bold leading-7 tracking-[-0.02em] text-[var(--text)]">
+
+              <h3 className="mt-2 line-clamp-2 text-[20px] font-bold leading-7 tracking-[-0.03em] text-[var(--text)]">
                 {article.title}
               </h3>
+
               {personalized && personalizedArticle.summaryLines?.length ? (
-                <div className="mt-2 space-y-1">
-                  {personalizedArticle.summaryLines.slice(0, 3).map((line, index) => (
-                    <p key={`${article.id}-${index}`} className="line-clamp-1 text-[13px] leading-5 text-[#5b6573]">
+                <div className="mt-3 space-y-1">
+                  {personalizedArticle.summaryLines.slice(0, 2).map((line, index) => (
+                    <p key={`${article.id}-${index}`} className="line-clamp-1 text-sm leading-6 text-[#5b6573]">
                       {line}
                     </p>
                   ))}
                 </div>
+              ) : article.description ? (
+                <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#5b6573]">{article.description}</p>
               ) : null}
-              <div className="mt-3 flex min-w-0 items-center gap-2 text-xs text-[#6b7280]">
+
+              <div className="mt-4 flex min-w-0 items-center gap-2 text-xs text-[#6b7280]">
                 <span className="truncate">{article.source}</span>
                 <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
                 <Clock className="h-3.5 w-3.5" />
@@ -171,13 +183,13 @@ function CompactNewsList({
               </div>
             </div>
 
-            <div className="home-compact-thumb relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] bg-[#e5edf8]">
+            <div className="editorial-thumb relative">
               {article.imageUrl ? (
                 <Image
                   src={article.imageUrl}
                   alt={article.title}
                   fill
-                  sizes="(max-width: 640px) 100vw, 96px"
+                  sizes="(max-width: 640px) 88px, 112px"
                   className="object-cover"
                 />
               ) : (
@@ -191,21 +203,223 @@ function CompactNewsList({
   );
 }
 
+function LeadStoryHero({
+  article,
+  trendingKeywords,
+  interestKeywords,
+}: {
+  article: News;
+  trendingKeywords: TrendingKeyword[];
+  interestKeywords: string[];
+}) {
+  const heroKeywords = [...trendingKeywords.slice(0, 2).map((item) => `#${item.keyword}`), ...interestKeywords.slice(0, 1)].slice(
+    0,
+    3,
+  );
+
+  return (
+    <section className="home-hero reveal-up">
+      <div className="home-hero-media">
+        {article.imageUrl ? (
+          <Image src={article.imageUrl} alt={article.title} fill priority sizes="100vw" className="object-cover" />
+        ) : (
+          <div className="home-hero-fallback" />
+        )}
+      </div>
+
+      <div className="home-hero-overlay" />
+
+      <div className="home-hero-content">
+        <p className="home-hero-brand">My News</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="home-hero-pill">{article.category.name}</span>
+          <span className="home-hero-pill home-hero-pill-muted">오늘의 리드 스토리</span>
+          {heroKeywords.map((keyword) => (
+            <span key={keyword} className="home-hero-pill home-hero-pill-muted">
+              {keyword}
+            </span>
+          ))}
+        </div>
+
+        <h1 className="home-hero-title">{article.title}</h1>
+        <p className="home-hero-copy">
+          지금 가장 먼저 봐야 할 흐름을 메인 기사로 올리고, 헤드라인과 관심사 기반 추천을 같은 화면에서 바로
+          이어서 탐색할 수 있게 정리했습니다.
+        </p>
+
+        <div className="home-hero-meta">
+          <span>{article.source}</span>
+          <span className="h-1 w-1 rounded-full bg-white/55" />
+          <span>{formatPublishedLabel(article.publishedAt)}</span>
+        </div>
+
+        <div className="home-hero-actions">
+          <Link
+            href={`/news/${article.id}`}
+            onClick={() => trackNewsInterest(article, 2)}
+            className="home-hero-action home-hero-action-primary"
+          >
+            기사 읽기
+          </Link>
+          <Link href="/news" className="home-hero-action home-hero-action-secondary">
+            전체 뉴스 보기
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BriefStrip({
+  headlineCount,
+  trendingKeywords,
+  personalizedArticles,
+}: {
+  headlineCount: number;
+  trendingKeywords: TrendingKeyword[];
+  personalizedArticles: PersonalizedNewsItem[];
+}) {
+  return (
+    <section className="home-brief-grid reveal-up" style={{ animationDelay: '120ms' }}>
+      <article className="home-brief-card">
+        <p className="home-eyebrow">Headlines</p>
+        <div className="mt-5 flex items-center gap-3">
+          <Newspaper className="h-5 w-5 text-[var(--primary-strong)]" />
+          <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{headlineCount}</p>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-[#5b6573]">지금 확인할 주요 기사 묶음을 한 화면에서 바로 훑을 수 있습니다.</p>
+      </article>
+
+      <article className="home-brief-card">
+        <p className="home-eyebrow">Trending</p>
+        <div className="mt-5 flex items-center gap-3">
+          <TrendingUp className="h-5 w-5 text-[#d97706]" />
+          <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">
+            {trendingKeywords.length > 0 ? `${trendingKeywords[0].count}x` : '-'}
+          </p>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-[#5b6573]">
+          {trendingKeywords.length > 0
+            ? `가장 많이 반복된 키워드는 ${trendingKeywords[0].keyword}입니다.`
+            : '충분한 기사 수집 후 실시간 이슈를 정리합니다.'}
+        </p>
+      </article>
+
+      <article className="home-brief-card">
+        <p className="home-eyebrow">For You</p>
+        <div className="mt-5 flex items-center gap-3">
+          <Sparkles className="h-5 w-5 text-[#1b64da]" />
+          <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{personalizedArticles.length}</p>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-[#5b6573]">
+          최근 본 기사와 관심 카테고리를 반영해 익명 개인화 순서로 다시 정렬합니다.
+        </p>
+      </article>
+    </section>
+  );
+}
+
+function OverviewTab({
+  articles,
+  headlineArticles,
+  trendingKeywords,
+  trendingTopArticles,
+  personalizedArticles,
+}: {
+  articles: News[];
+  headlineArticles: News[];
+  trendingKeywords: TrendingKeyword[];
+  trendingTopArticles: RankedTrendingNews[];
+  personalizedArticles: PersonalizedNewsItem[];
+}) {
+  const heroArticle = headlineArticles[0] ?? articles[0];
+  const interestKeywords = useMemo(
+    () =>
+      Object.entries(getAnonymousProfile()?.keywordScores ?? {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([keyword]) => `#${keyword}`),
+    [],
+  );
+
+  if (!heroArticle) {
+    return null;
+  }
+
+  return (
+    <div className="home-overview-stack">
+      <LeadStoryHero article={heroArticle} trendingKeywords={trendingKeywords} interestKeywords={interestKeywords} />
+
+      <BriefStrip
+        headlineCount={headlineArticles.length}
+        trendingKeywords={trendingKeywords}
+        personalizedArticles={personalizedArticles}
+      />
+
+      <section className="home-section-surface reveal-up" style={{ animationDelay: '180ms' }}>
+        <SectionHeader
+          eyebrow="Headlines"
+          title="지금 먼저 볼 기사"
+          description="가장 빠르게 훑어야 할 주요 기사만 우선 배치했습니다."
+          href="/news"
+          linkLabel="전체 보기"
+        />
+        <div className="mt-6">
+          <EditorialList articles={headlineArticles} limit={4} />
+        </div>
+      </section>
+
+      <section className="home-two-column reveal-up" style={{ animationDelay: '240ms' }}>
+        <article className="home-section-surface">
+          <SectionHeader
+            eyebrow="Trending"
+            title="지금 많이 언급되는 이슈"
+            description="반복 출현한 키워드를 기준으로 상위 기사를 다시 묶었습니다."
+          />
+          <div className="mt-6">
+            <EditorialList articles={trendingTopArticles} ranked limit={3} />
+          </div>
+        </article>
+
+        <article className="home-section-surface">
+          <SectionHeader
+            eyebrow="For You"
+            title="당신을 위한 선별"
+            description="최근 반응을 바탕으로 읽을 가능성이 높은 순서대로 정렬했습니다."
+          />
+          <div className="mt-6">
+            <EditorialList articles={personalizedArticles} personalized limit={3} />
+          </div>
+        </article>
+      </section>
+
+    </div>
+  );
+}
+
 function HeadlineSection({ articles }: { articles: News[] }) {
   if (articles.length === 0) {
     return (
       <EmptyState
         title="헤드라인이 아직 없습니다"
-        message="수집된 뉴스가 쌓이면 주요 헤드라인 5개를 먼저 보여드립니다."
+        message="기사 수집이 완료되면 주요 기사 목록을 먼저 보여드립니다."
         icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
       />
     );
   }
 
   return (
-    <section className="toss-card section-pad-sm">
-      <SectionHeader title="헤드라인" href="/news" linkLabel="뉴스 보기" />
-      <CompactNewsList articles={articles} />
+    <section className="home-section-surface reveal-up">
+      <SectionHeader
+        eyebrow="Headlines"
+        title="오늘의 핵심 기사"
+        description="가장 먼저 읽어야 할 기사만 추려 차분한 리스트로 정리했습니다."
+        href="/news"
+        linkLabel="전체 보기"
+      />
+      <div className="mt-6">
+        <EditorialList articles={articles} />
+      </div>
     </section>
   );
 }
@@ -214,17 +428,25 @@ function TrendingTopSection({ articles }: { articles: RankedTrendingNews[] }) {
   if (articles.length === 0) {
     return (
       <EmptyState
-        title="실검 뉴스가 아직 없습니다"
-        message="수집된 뉴스 제목과 설명을 분석해 많이 언급된 이슈 중심으로 뉴스를 정리해 보여드립니다."
+        title="집계할 트렌드가 아직 없습니다"
+        message="기사 제목과 설명이 더 쌓이면 지금 많이 언급되는 이슈를 자동으로 정리합니다."
         icon={<Flame className="mb-4 h-12 w-12 text-[#9ca3af]" />}
       />
     );
   }
 
   return (
-    <section className="toss-card section-pad-sm">
-      <SectionHeader title="실검 뉴스" href="/news" linkLabel="뉴스 보기" />
-      <CompactNewsList articles={articles} ranked />
+    <section className="home-section-surface reveal-up">
+      <SectionHeader
+        eyebrow="Trending"
+        title="지금 많이 읽는 이슈"
+        description="반복 키워드와 최신도를 함께 반영해 우선순위를 다시 계산했습니다."
+        href="/news"
+        linkLabel="전체 보기"
+      />
+      <div className="mt-6">
+        <EditorialList articles={articles} ranked />
+      </div>
     </section>
   );
 }
@@ -241,17 +463,25 @@ function PersonalizedSection({
   if (articles.length === 0) {
     return (
       <EmptyState
-        title="맞춤 뉴스가 아직 부족합니다"
-        message="뉴스를 읽기 시작하면 관심 카테고리와 키워드를 반영해 추천 정확도가 높아집니다."
-        icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+        title="개인화할 반응이 아직 부족합니다"
+        message="기사를 읽기 시작하면 관심 카테고리와 키워드를 반영해 추천 정확도를 높입니다."
+        icon={<Sparkles className="mb-4 h-12 w-12 text-[#9ca3af]" />}
       />
     );
   }
 
   return (
-    <section className="toss-card section-pad-sm">
-      <SectionHeader eyebrow="My Interest Feed" title="맞춤 뉴스 리스트" href="/news" linkLabel="뉴스 보기" />
-      <CompactNewsList articles={articles} personalized />
+    <section className="home-section-surface reveal-up">
+      <SectionHeader
+        eyebrow="For You"
+        title="맞춤 뉴스 리스트"
+        description="읽은 기사와 관심 키워드 반응을 기준으로 다시 선별했습니다."
+        href="/news"
+        linkLabel="전체 보기"
+      />
+      <div className="mt-6">
+        <EditorialList articles={articles} personalized />
+      </div>
       <div ref={sentinelRef} className="min-h-8 pt-4">
         {isLoadingMore ? <LoadingSpinner size="small" /> : null}
       </div>
@@ -268,7 +498,7 @@ function tokenizeForTrending(text: string) {
     '뉴스',
     '정부',
     '시장',
-    '오전',
+    '대통령',
     '대한민국',
     '속보',
     '단독',
@@ -405,9 +635,9 @@ function HomeContent() {
           article.summaryLines && article.summaryLines.length > 0
             ? article.summaryLines
             : [
-                '요약을 준비하고 있습니다.',
-                '관심 카테고리와 키워드를 반영해 정렬했습니다.',
-                '본문 분석이 끝나면 핵심 3줄을 표시합니다.',
+                '요약 데이터를 준비하는 중입니다.',
+                '관심 카테고리와 키워드 반응을 우선 반영했습니다.',
+                '본문 분석이 완료되면 핵심 문장을 함께 제공합니다.',
               ],
       })),
     [articles, profile],
@@ -485,15 +715,23 @@ function HomeContent() {
     return (
       <EmptyState
         title="표시할 뉴스가 없습니다"
-        message="뉴스 수집이 완료되면 날씨, 헤드라인, 실검, 맞춤 뉴스를 보여드립니다."
+        message="뉴스 수집이 완료되면 오늘의 흐름과 맞춤 추천을 여기서 확인할 수 있습니다."
         icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
       />
     );
   }
 
   return (
-    <div className="min-w-0 space-y-4">
-      {selectedTab === 'weather' ? <WeatherWidget /> : null}
+    <div className="min-w-0 home-page-stack">
+      {selectedTab === 'weather' ? (
+        <OverviewTab
+          articles={articles}
+          headlineArticles={headlineArticles}
+          trendingKeywords={trendingKeywords}
+          trendingTopArticles={trendingTopArticles}
+          personalizedArticles={visiblePersonalizedArticles}
+        />
+      ) : null}
       {selectedTab === 'headline' ? <HeadlineSection articles={headlineArticles} /> : null}
       {selectedTab === 'trending' ? <TrendingTopSection articles={trendingTopArticles} /> : null}
       {selectedTab === 'personalized' ? (
