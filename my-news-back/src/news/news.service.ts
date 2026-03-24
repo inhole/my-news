@@ -52,20 +52,13 @@ interface SummaryTarget {
   summaryHash: string;
 }
 
-interface NewsSummarySource {
-  id: string;
-  title: string;
-  description: string | null;
-  content: string | null;
-  summaryLines: string[];
-  summaryHash: string | null;
-  category: {
-    name: string;
-  } | null;
-}
-
 @Injectable()
 export class NewsService {
+  private readonly summaryBatchMaxItems = 20;
+  private readonly summaryBatchMaxPromptChars = 18000;
+  private readonly summaryTitleMaxChars = 120;
+  private readonly summaryDescriptionMaxChars = 240;
+  private readonly summaryContentMaxChars = 800;
   private readonly logger = new Logger(NewsService.name);
   private readonly naverClientId: string;
   private readonly naverClientSecret: string;
@@ -138,14 +131,11 @@ export class NewsService {
     const hasMore = news.length > limit;
     const items = hasMore ? news.slice(0, -1) : news;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
-    const ensuredSummaryMap = await this.ensureSummariesForNews(items);
-
     return {
       items: items.map((item) => ({
         ...item,
-        summaryLines: ensuredSummaryMap.get(item.id) ?? item.summaryLines,
         summary: this.buildShortSummary(
-          ensuredSummaryMap.get(item.id) ?? item.summaryLines,
+          item.summaryLines,
           item.description,
           item.content,
         ),
@@ -167,13 +157,10 @@ export class NewsService {
       return null;
     }
 
-    const ensuredSummaryMap = await this.ensureSummariesForNews([news]);
-
     return {
       ...news,
-      summaryLines: ensuredSummaryMap.get(news.id) ?? news.summaryLines,
       summary: this.buildShortSummary(
-        ensuredSummaryMap.get(news.id) ?? news.summaryLines,
+        news.summaryLines,
         news.description,
         news.content,
       ),
@@ -402,44 +389,6 @@ export class NewsService {
       .digest('hex');
   }
 
-  private buildSummaryTarget(source: NewsSummarySource): SummaryTarget | null {
-    const categoryName = this.normalizeText(source.category?.name || '');
-    const nextSummaryHash = this.buildSummaryHash({
-      title: source.title,
-      description: source.description,
-      content: source.content,
-      categoryName,
-    });
-
-    if (
-      source.summaryLines?.length >= 3 &&
-      source.summaryHash === nextSummaryHash
-    ) {
-      return null;
-    }
-
-    return {
-      id: source.id,
-      title: source.title,
-      description: source.description,
-      content: source.content,
-      categoryName,
-      summaryHash: nextSummaryHash,
-    };
-  }
-
-  private async ensureSummariesForNews(newsItems: NewsSummarySource[]) {
-    const targets = newsItems
-      .map((item) => this.buildSummaryTarget(item))
-      .filter((target): target is SummaryTarget => Boolean(target));
-
-    if (targets.length === 0) {
-      return new Map<string, string[]>();
-    }
-
-    return this.generateAndStoreSummaries(targets);
-  }
-
   private buildShortSummary(
     summaryLines?: string[] | null,
     description?: string | null,
@@ -468,16 +417,16 @@ export class NewsService {
       return new Map<string, string[]>();
     }
 
-    const batches = this.chunkArray(targets, 5);
+    const batches = this.buildSummaryRequestBatches(targets);
     const storedSummaries = new Map<string, string[]>();
 
     for (const batch of batches) {
-      const summaries = await this.summarizeBatch(batch);
+      const summaries = await this.summarizeShortBatch(batch);
 
       await Promise.all(
         batch.map(async (target) => {
           const lines =
-            summaries.get(target.id) ?? this.buildFallbackSummary(target);
+            summaries.get(target.id) ?? this.buildShortFallbackSummary(target);
 
           storedSummaries.set(target.id, lines);
 
@@ -493,6 +442,165 @@ export class NewsService {
     }
 
     return storedSummaries;
+  }
+
+  private buildSummaryRequestBatches(targets: SummaryTarget[]) {
+    const batches: SummaryTarget[][] = [];
+    let currentBatch: SummaryTarget[] = [];
+    let currentSize = 0;
+
+    for (const target of targets) {
+      const estimatedSize = this.estimateSummaryTargetSize(target);
+      const wouldExceedItemLimit =
+        currentBatch.length >= this.summaryBatchMaxItems;
+      const wouldExceedPromptLimit =
+        currentBatch.length > 0 &&
+        currentSize + estimatedSize > this.summaryBatchMaxPromptChars;
+
+      if (wouldExceedItemLimit || wouldExceedPromptLimit) {
+        batches.push(currentBatch);
+        currentBatch = [];
+        currentSize = 0;
+      }
+
+      currentBatch.push(target);
+      currentSize += estimatedSize;
+    }
+
+    if (currentBatch.length > 0) {
+      batches.push(currentBatch);
+    }
+
+    return batches;
+  }
+
+  private estimateSummaryTargetSize(target: SummaryTarget) {
+    return (
+      this.truncateSummaryField(target.title, this.summaryTitleMaxChars).length +
+      this.truncateSummaryField(
+        target.description || '',
+        this.summaryDescriptionMaxChars,
+      ).length +
+      this.truncateSummaryField(
+        target.content || '',
+        this.summaryContentMaxChars,
+      ).length +
+      120
+    );
+  }
+
+  private async summarizeShortBatch(targets: SummaryTarget[]) {
+    if (!this.openAiApiKey) {
+      return new Map<string, string[]>();
+    }
+
+    const compactTargets = targets.map((target) => ({
+      ...target,
+      title: this.truncateSummaryField(target.title, this.summaryTitleMaxChars),
+      description: this.truncateSummaryField(
+        target.description || '',
+        this.summaryDescriptionMaxChars,
+      ),
+      content: this.truncateSummaryField(
+        target.content || '',
+        this.summaryContentMaxChars,
+      ),
+    }));
+
+    const prompt = [
+      '아래 뉴스 여러 건에 대해 한국어 120자 이내 요약을 JSON으로 반환해 주세요.',
+      '각 기사마다 summary 필드에 하나의 자연스러운 문장 또는 짧은 문단으로만 작성해 주세요.',
+      '핵심 내용만 유지하고 군더더기는 빼 주세요.',
+      '출력은 JSON 배열만 반환해 주세요.',
+      '형식: [{"id":"기사ID","summary":"120자 이내 요약"}]',
+      '',
+      ...compactTargets.map((target, index) =>
+        [
+          `기사 ${index + 1}`,
+          `id: ${target.id}`,
+          `카테고리: ${this.normalizeText(target.categoryName)}`,
+          `제목: ${this.normalizeText(target.title)}`,
+          `설명: ${this.normalizeText(target.description || '')}`,
+          `본문: ${this.normalizeText(target.content || '')}`,
+          '',
+        ].join('\n'),
+      ),
+    ].join('\n');
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.openAiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: this.openAiModel,
+          temperature: 0.2,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.warn(
+          `Summary batch request failed with status ${response.status}: ${errorText}`,
+        );
+        return new Map<string, string[]>();
+      }
+
+      const data = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        return new Map<string, string[]>();
+      }
+
+      const parsed = JSON.parse(content) as Array<{
+        id?: string;
+        summary?: string;
+      }>;
+
+      return new Map(
+        parsed
+          .filter(
+            (item): item is { id: string; summary: string } =>
+              Boolean(item?.id) && typeof item.summary === 'string',
+          )
+          .map((item) => [
+            item.id,
+            [this.normalizeText(item.summary).slice(0, 120)].filter(Boolean),
+          ]),
+      );
+    } catch (error) {
+      this.logger.warn(`Summary batch generation failed: ${String(error)}`);
+      return new Map<string, string[]>();
+    }
+  }
+
+  private buildShortFallbackSummary(target: SummaryTarget) {
+    const description = this.normalizeText(target.description || '');
+    const content = this.normalizeText(target.content || '');
+    const sentences = [description, ...content.split(/\n{2,}|(?<=[.!?])\s+/)]
+      .map((sentence) => this.normalizeText(sentence))
+      .filter(Boolean);
+
+    return [
+      (
+        sentences[0] ||
+        `${target.categoryName} 기사: ${this.normalizeText(target.title)}`
+      ).slice(0, 120),
+    ];
+  }
+
+  private truncateSummaryField(value: string, maxLength: number) {
+    const normalized = this.normalizeText(value);
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+
+    return normalized.slice(0, maxLength);
   }
 
   private async summarizeBatch(targets: SummaryTarget[]) {
