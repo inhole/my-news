@@ -34,6 +34,7 @@
 
 ## CSS 원칙
 
+- 전역 reset은 `box-sizing`까지만 유지하고, `margin/padding` 초기화는 `html`, `body` 수준으로 제한한다.
 - 패딩은 기존 공통 변수(`--section-pad-*`, `--item-pad-*`)를 그대로 활용한다.
 - 새 홈 UI용 클래스는 전역 변수와 충돌하지 않도록 `home-*`, `editorial-*` 접두사로 추가했다.
 - 히어로, 브리프, 섹션 reveal 애니메이션은 과하지 않은 한 방향 모션만 사용한다.
