@@ -9,6 +9,9 @@
     "install:all": "npm install --workspaces",
     "dev:front": "npm run dev --workspace my-news-front",
     "dev:back": "npm run start:dev --workspace my-news-back",
+    "start:front": "npm run start --workspace my-news-front",
+    "start:back": "npm run start:prod --workspace my-news-back",
+    "start:prod": "npm run start:back",
     "build": "npm run build --workspace my-news-front && npm run build --workspace my-news-back",
     "lint": "npm run lint --workspace my-news-front && npm run lint --workspace my-news-back",
     "test": "npm run test --workspace my-news-back"

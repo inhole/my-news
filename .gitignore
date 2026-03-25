@@ -1,5 +1,8 @@
 node_modules/
 .npm/
+.next/
+dist/
+coverage/
 
 # IDE
 .idea/
@@ -8,3 +11,9 @@ node_modules/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Environment files
+.env
+.env.*
+!.env.local.example
+!.env.production.example

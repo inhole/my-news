@@ -1,10 +1,10 @@
-﻿#!/bin/bash
+#!/bin/bash
 
 set -e
 
 echo "[1/5] .env 확인"
 if [ ! -f .env ]; then
-  cp .env.example .env
+  cp .env.local.example .env
   echo ".env 파일을 생성했습니다: my-news-back/.env"
   echo "Neon DATABASE_URL 값을 먼저 입력해 주세요."
   exit 1

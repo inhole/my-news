@@ -1,9 +1,9 @@
-﻿@echo off
+@echo off
 setlocal
 
 echo [1/5] .env 확인
 if not exist .env (
-  copy .env.example .env > nul
+  copy .env.local.example .env > nul
   echo .env 파일을 생성했습니다: my-news-back\.env
   echo Neon DATABASE_URL 값을 먼저 입력해 주세요.
   exit /b 1
