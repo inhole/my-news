@@ -708,8 +708,17 @@ export class NewsService {
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
+      .replace(/&middot;/gi, '·')
       .replace(/&#39;/g, "'")
       .replace(/&#x2F;/g, '/')
+      .replace(/&#(\d+);/g, (_, code) => {
+        const parsed = Number.parseInt(code, 10);
+        return Number.isNaN(parsed) ? _ : String.fromCodePoint(parsed);
+      })
+      .replace(/&#x([0-9a-f]+);/gi, (_, code) => {
+        const parsed = Number.parseInt(code, 16);
+        return Number.isNaN(parsed) ? _ : String.fromCodePoint(parsed);
+      })
       .replace(/&nbsp;/g, ' ')
       .replace(/\r\n?/g, '\n')
       .replace(/[ \t]+\n/g, '\n')
