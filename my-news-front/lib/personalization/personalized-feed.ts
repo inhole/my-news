@@ -3,8 +3,6 @@ import type { News } from '@/types';
 
 export interface PersonalizedNewsItem extends News {
   personalizedScore: number;
-  summary: string | null;
-  summaryLines: string[];
   matchedKeywords: string[];
 }
 
@@ -46,8 +44,6 @@ export function rankPersonalizedNews(articles: News[], profile: AnonymousProfile
       return {
         ...article,
         personalizedScore: categoryAffinity * 2 + keywordAffinity + freshness - seenPenalty,
-        summary: article.summary ?? null,
-        summaryLines: Array.isArray(article.summaryLines) ? article.summaryLines : [],
         matchedKeywords,
       };
     })

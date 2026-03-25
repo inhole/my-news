@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import type { AnyNode, Element } from 'domhandler';
-import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 
@@ -43,28 +42,12 @@ interface ContentBlock {
   text: string;
 }
 
-interface SummaryTarget {
-  id: string;
-  title: string;
-  description: string | null;
-  content: string | null;
-  categoryName: string;
-  summaryHash: string;
-}
-
 @Injectable()
 export class NewsService {
-  private readonly summaryBatchMaxItems = 20;
-  private readonly summaryBatchMaxPromptChars = 18000;
-  private readonly summaryTitleMaxChars = 120;
-  private readonly summaryDescriptionMaxChars = 240;
-  private readonly summaryContentMaxChars = 800;
   private readonly logger = new Logger(NewsService.name);
   private readonly naverClientId: string;
   private readonly naverClientSecret: string;
   private readonly naverNewsApiUrl: string;
-  private readonly openAiApiKey: string;
-  private readonly openAiModel: string;
 
   constructor(
     private prisma: PrismaService,
@@ -77,9 +60,6 @@ export class NewsService {
     this.naverNewsApiUrl =
       this.configService.get<string>('NAVER_NEWS_API_URL') ||
       'https://openapi.naver.com/v1/search/news.json';
-    this.openAiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
-    this.openAiModel =
-      this.configService.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini';
   }
 
   async getNews(
@@ -131,40 +111,21 @@ export class NewsService {
     const hasMore = news.length > limit;
     const items = hasMore ? news.slice(0, -1) : news;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
+
     return {
-      items: items.map((item) => ({
-        ...item,
-        summary: this.buildShortSummary(
-          item.summaryLines,
-          item.description,
-          item.content,
-        ),
-      })),
+      items,
       nextCursor,
       hasMore,
     };
   }
 
   async getNewsById(id: string) {
-    const news = await this.prisma.news.findUnique({
+    return this.prisma.news.findUnique({
       where: { id },
       include: {
         category: true,
       },
     });
-
-    if (!news) {
-      return null;
-    }
-
-    return {
-      ...news,
-      summary: this.buildShortSummary(
-        news.summaryLines,
-        news.description,
-        news.content,
-      ),
-    };
   }
 
   async searchNews(query: string, cursor?: string, limit: number = 20) {
@@ -182,7 +143,7 @@ export class NewsService {
     const normalizedCategory = (category || 'general').toLowerCase();
     const categoryDefinition = NEWS_CATEGORY_MAP[normalizedCategory];
     const searchQuery =
-      categoryDefinition?.searchQuery || `${normalizedCategory} 한국 뉴스`;
+      categoryDefinition?.searchQuery || `${normalizedCategory} ?쒓뎅 ?댁뒪`;
 
     try {
       const params: NaverNewsApiParams = {
@@ -223,7 +184,6 @@ export class NewsService {
       });
 
       let savedCount = 0;
-      const summaryTargets: SummaryTarget[] = [];
 
       for (const article of articles) {
         const originalUrl = article.originallink;
@@ -242,12 +202,9 @@ export class NewsService {
         const existingNews = await this.prisma.news.findUnique({
           where: { url },
           select: {
-            id: true,
             urlToImage: true,
             content: true,
             contentHtml: true,
-            summaryHash: true,
-            summaryLines: true,
           },
         });
 
@@ -280,14 +237,8 @@ export class NewsService {
         const resolvedSource = crawledMetadata?.source || source;
         const resolvedImageUrl =
           crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
-        const nextSummaryHash = this.buildSummaryHash({
-          title: resolvedTitle,
-          description: resolvedDescription,
-          content: resolvedContent,
-          categoryName: categoryRecord.name,
-        });
 
-        const savedNews = await this.prisma.news.upsert({
+        await this.prisma.news.upsert({
           where: { url },
           update: {
             title: resolvedTitle,
@@ -312,31 +263,9 @@ export class NewsService {
             author: null,
             categoryId: categoryRecord.id,
           },
-          select: {
-            id: true,
-          },
         });
 
-        if (
-          !existingNews ||
-          existingNews.summaryHash !== nextSummaryHash ||
-          !existingNews.summaryLines?.length
-        ) {
-          summaryTargets.push({
-            id: savedNews.id,
-            title: resolvedTitle,
-            description: resolvedDescription,
-            content: resolvedContent,
-            categoryName: categoryRecord.name,
-            summaryHash: nextSummaryHash,
-          });
-        }
-
         savedCount += 1;
-      }
-
-      if (summaryTargets.length > 0) {
-        await this.generateAndStoreSummaries(summaryTargets);
       }
 
       this.logger.log(
@@ -369,350 +298,6 @@ export class NewsService {
 
     const parsed = new Date(pubDate);
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-  }
-
-  private buildSummaryHash(input: {
-    title: string;
-    description?: string | null;
-    content?: string | null;
-    categoryName?: string | null;
-  }) {
-    return createHash('sha256')
-      .update(
-        JSON.stringify({
-          title: this.normalizeText(input.title),
-          description: this.normalizeText(input.description || ''),
-          content: this.normalizeText(input.content || ''),
-          categoryName: this.normalizeText(input.categoryName || ''),
-        }),
-      )
-      .digest('hex');
-  }
-
-  private buildShortSummary(
-    summaryLines?: string[] | null,
-    description?: string | null,
-    content?: string | null,
-  ) {
-    const candidate = Array.isArray(summaryLines)
-      ? summaryLines
-          .map((line) => this.normalizeText(line))
-          .filter(Boolean)
-          .join(' ')
-      : '';
-
-    const fallback =
-      this.normalizeText(description || '') || this.normalizeText(content || '');
-    const merged = candidate || fallback;
-
-    if (!merged) {
-      return null;
-    }
-
-    return merged.slice(0, 120);
-  }
-
-  private async generateAndStoreSummaries(targets: SummaryTarget[]) {
-    if (targets.length === 0) {
-      return new Map<string, string[]>();
-    }
-
-    const batches = this.buildSummaryRequestBatches(targets);
-    const storedSummaries = new Map<string, string[]>();
-
-    for (const batch of batches) {
-      const summaries = await this.summarizeShortBatch(batch);
-
-      await Promise.all(
-        batch.map(async (target) => {
-          const lines =
-            summaries.get(target.id) ?? this.buildShortFallbackSummary(target);
-
-          storedSummaries.set(target.id, lines);
-
-          await this.prisma.news.update({
-            where: { id: target.id },
-            data: {
-              summaryLines: lines,
-              summaryHash: target.summaryHash,
-            },
-          });
-        }),
-      );
-    }
-
-    return storedSummaries;
-  }
-
-  private buildSummaryRequestBatches(targets: SummaryTarget[]) {
-    const batches: SummaryTarget[][] = [];
-    let currentBatch: SummaryTarget[] = [];
-    let currentSize = 0;
-
-    for (const target of targets) {
-      const estimatedSize = this.estimateSummaryTargetSize(target);
-      const wouldExceedItemLimit =
-        currentBatch.length >= this.summaryBatchMaxItems;
-      const wouldExceedPromptLimit =
-        currentBatch.length > 0 &&
-        currentSize + estimatedSize > this.summaryBatchMaxPromptChars;
-
-      if (wouldExceedItemLimit || wouldExceedPromptLimit) {
-        batches.push(currentBatch);
-        currentBatch = [];
-        currentSize = 0;
-      }
-
-      currentBatch.push(target);
-      currentSize += estimatedSize;
-    }
-
-    if (currentBatch.length > 0) {
-      batches.push(currentBatch);
-    }
-
-    return batches;
-  }
-
-  private estimateSummaryTargetSize(target: SummaryTarget) {
-    return (
-      this.truncateSummaryField(target.title, this.summaryTitleMaxChars).length +
-      this.truncateSummaryField(
-        target.description || '',
-        this.summaryDescriptionMaxChars,
-      ).length +
-      this.truncateSummaryField(
-        target.content || '',
-        this.summaryContentMaxChars,
-      ).length +
-      120
-    );
-  }
-
-  private async summarizeShortBatch(targets: SummaryTarget[]) {
-    if (!this.openAiApiKey) {
-      return new Map<string, string[]>();
-    }
-
-    const compactTargets = targets.map((target) => ({
-      ...target,
-      title: this.truncateSummaryField(target.title, this.summaryTitleMaxChars),
-      description: this.truncateSummaryField(
-        target.description || '',
-        this.summaryDescriptionMaxChars,
-      ),
-      content: this.truncateSummaryField(
-        target.content || '',
-        this.summaryContentMaxChars,
-      ),
-    }));
-
-    const prompt = [
-      '아래 뉴스 여러 건에 대해 한국어 120자 이내 요약을 JSON으로 반환해 주세요.',
-      '각 기사마다 summary 필드에 하나의 자연스러운 문장 또는 짧은 문단으로만 작성해 주세요.',
-      '핵심 내용만 유지하고 군더더기는 빼 주세요.',
-      '출력은 JSON 배열만 반환해 주세요.',
-      '형식: [{"id":"기사ID","summary":"120자 이내 요약"}]',
-      '',
-      ...compactTargets.map((target, index) =>
-        [
-          `기사 ${index + 1}`,
-          `id: ${target.id}`,
-          `카테고리: ${this.normalizeText(target.categoryName)}`,
-          `제목: ${this.normalizeText(target.title)}`,
-          `설명: ${this.normalizeText(target.description || '')}`,
-          `본문: ${this.normalizeText(target.content || '')}`,
-          '',
-        ].join('\n'),
-      ),
-    ].join('\n');
-
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.openAiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: this.openAiModel,
-          temperature: 0.2,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.warn(
-          `Summary batch request failed with status ${response.status}: ${errorText}`,
-        );
-        return new Map<string, string[]>();
-      }
-
-      const data = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-      const content = data.choices?.[0]?.message?.content;
-      if (!content) {
-        return new Map<string, string[]>();
-      }
-
-      const parsed = JSON.parse(content) as Array<{
-        id?: string;
-        summary?: string;
-      }>;
-
-      return new Map(
-        parsed
-          .filter(
-            (item): item is { id: string; summary: string } =>
-              Boolean(item?.id) && typeof item.summary === 'string',
-          )
-          .map((item) => [
-            item.id,
-            [this.normalizeText(item.summary).slice(0, 120)].filter(Boolean),
-          ]),
-      );
-    } catch (error) {
-      this.logger.warn(`Summary batch generation failed: ${String(error)}`);
-      return new Map<string, string[]>();
-    }
-  }
-
-  private buildShortFallbackSummary(target: SummaryTarget) {
-    const description = this.normalizeText(target.description || '');
-    const content = this.normalizeText(target.content || '');
-    const sentences = [description, ...content.split(/\n{2,}|(?<=[.!?])\s+/)]
-      .map((sentence) => this.normalizeText(sentence))
-      .filter(Boolean);
-
-    return [
-      (
-        sentences[0] ||
-        `${target.categoryName} 기사: ${this.normalizeText(target.title)}`
-      ).slice(0, 120),
-    ];
-  }
-
-  private truncateSummaryField(value: string, maxLength: number) {
-    const normalized = this.normalizeText(value);
-    if (normalized.length <= maxLength) {
-      return normalized;
-    }
-
-    return normalized.slice(0, maxLength);
-  }
-
-  private async summarizeBatch(targets: SummaryTarget[]) {
-    if (!this.openAiApiKey) {
-      return new Map<string, string[]>();
-    }
-
-    const prompt = [
-      '아래 뉴스 여러 건에 대해 한국어 3줄 요약을 JSON으로 반환해 주세요.',
-      '각 기사마다 lines는 반드시 3개의 짧은 문장으로 작성해 주세요.',
-      '출력은 JSON 배열만 반환해 주세요.',
-      '형식: [{"id":"기사ID","lines":["줄1","줄2","줄3"]}]',
-      '',
-      ...targets.map((target, index) =>
-        [
-          `기사 ${index + 1}`,
-          `id: ${target.id}`,
-          `카테고리: ${this.normalizeText(target.categoryName)}`,
-          `제목: ${this.normalizeText(target.title)}`,
-          `설명: ${this.normalizeText(target.description || '')}`,
-          `본문: ${this.normalizeText(target.content || '')}`,
-          '',
-        ].join('\n'),
-      ),
-    ].join('\n');
-
-    try {
-      const response = await fetch(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.openAiApiKey}`,
-          },
-          body: JSON.stringify({
-            model: this.openAiModel,
-            temperature: 0.2,
-            messages: [{ role: 'user', content: prompt }],
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        this.logger.warn(
-          `Summary batch request failed with status ${response.status}`,
-        );
-        return new Map<string, string[]>();
-      }
-
-      const data = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-      const content = data.choices?.[0]?.message?.content;
-      if (!content) {
-        return new Map<string, string[]>();
-      }
-
-      const parsed = JSON.parse(content) as Array<{
-        id?: string;
-        lines?: string[];
-      }>;
-      return new Map(
-        parsed
-          .filter(
-            (item): item is { id: string; lines: string[] } =>
-              Boolean(item?.id) &&
-              Array.isArray(item?.lines) &&
-              item.lines.length >= 3,
-          )
-          .map((item) => [
-            item.id,
-            item.lines
-              .slice(0, 3)
-              .map((line) => this.normalizeText(line))
-              .filter(Boolean),
-          ]),
-      );
-    } catch (error) {
-      this.logger.warn(`Summary batch generation failed: ${String(error)}`);
-      return new Map<string, string[]>();
-    }
-  }
-
-  private buildFallbackSummary(target: SummaryTarget) {
-    const description = this.normalizeText(target.description || '');
-    const content = this.normalizeText(target.content || '');
-    const sentences = [description, ...content.split(/\n{2,}|(?<=[.!?])\s+/)]
-      .map((sentence) => this.normalizeText(sentence))
-      .filter(Boolean);
-
-    return [
-      `${target.categoryName} 핵심: ${this.normalizeText(target.title)}`.slice(
-        0,
-        120,
-      ),
-      (sentences[0] || '핵심 내용을 정리 중입니다.').slice(0, 120),
-      (sentences[1] || '본문 분석이 끝나면 추가 요약을 제공합니다.').slice(
-        0,
-        120,
-      ),
-    ];
-  }
-
-  private chunkArray<T>(items: T[], size: number) {
-    const chunks: T[][] = [];
-
-    for (let index = 0; index < items.length; index += size) {
-      chunks.push(items.slice(index, index + size));
-    }
-
-    return chunks;
   }
 
   private async fetchArticleMetadata(
@@ -1167,7 +752,7 @@ export class NewsService {
       return false;
     }
 
-    if (text.includes('�')) {
+    if (text.includes('占?')) {
       return true;
     }
 
@@ -1195,7 +780,7 @@ export class NewsService {
       '기자',
       '구독',
       '좋아요',
-      '댓글',
+      '광고',
     ].some((keyword) => normalized.includes(keyword));
   }
 

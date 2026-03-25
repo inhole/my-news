@@ -21,8 +21,8 @@ export function NewsThumbnail({
   sizes,
   priority = false,
   fill = true,
-  className = 'object-cover',
-  fallbackClassName = 'absolute inset-0',
+  className = 'object-cover object-center',
+  fallbackClassName = 'absolute inset-0 object-cover object-center',
 }: NewsThumbnailProps) {
   const normalizedSrc = useMemo(() => {
     const trimmed = src?.trim();

@@ -139,9 +139,9 @@ function EditorialList({
             key={article.id}
             href={`/news/${article.id}`}
             onClick={() => trackNewsInterest(article, personalized ? 2 : 1)}
-            className="editorial-list-row"
+            className={`editorial-list-row ${personalized ? 'editorial-list-row-personalized' : ''}`}
           >
-            <div className="min-w-0 flex-1">
+            <div className={`editorial-body min-w-0 flex-1 ${personalized ? 'editorial-body-personalized' : ''}`}>
               <div className="flex flex-wrap items-center gap-2">
                 {ranked ? <span className="editorial-rank">{rankedArticle.rank}</span> : null}
                 <p className="text-[12px] font-semibold text-[var(--primary-strong)]">{article.category.name}</p>
@@ -151,17 +151,29 @@ function EditorialList({
                 ) : null}
               </div>
 
-              <h3 className="mt-2 line-clamp-2 text-[20px] font-bold leading-7 tracking-[-0.03em] text-[var(--text)]">
+              <h3
+                className={`editorial-title mt-2 text-[20px] font-bold tracking-[-0.03em] text-[var(--text)] ${
+                  personalized ? 'editorial-title-personalized' : ''
+                }`}
+              >
                 {article.title}
               </h3>
 
-              {personalized && personalizedArticle.summary ? (
-                <p className="mt-3 text-sm leading-6 text-[#5b6573]">{personalizedArticle.summary}</p>
-              ) : article.description ? (
-                <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#5b6573]">{article.description}</p>
+              {article.description ? (
+                <p
+                  className={`editorial-summary mt-3 text-sm text-[#5b6573] ${
+                    personalized ? 'editorial-summary-personalized' : ''
+                  }`}
+                >
+                  {article.description}
+                </p>
               ) : null}
 
-              <div className="mt-4 flex min-w-0 items-center gap-2 text-xs text-[#6b7280]">
+              <div
+                className={`editorial-meta mt-4 flex min-w-0 items-center gap-2 text-xs text-[#6b7280] ${
+                  personalized ? 'editorial-meta-personalized' : ''
+                }`}
+              >
                 <span className="truncate">{article.source}</span>
                 <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
                 <Clock className="h-3.5 w-3.5" />
@@ -169,9 +181,16 @@ function EditorialList({
               </div>
             </div>
 
-            <div className="editorial-thumb relative">
-              <NewsThumbnail src={article.imageUrl} alt={article.title} fill sizes="(max-width: 640px) 88px, 112px" />
-            </div>
+            {!personalized ? (
+              <div className="editorial-thumb relative">
+                <NewsThumbnail
+                  src={article.imageUrl}
+                  alt={article.title}
+                  fill
+                  sizes="(max-width: 479px) 114px, (max-width: 719px) 140px, 177px"
+                />
+              </div>
+            ) : null}
           </Link>
         );
       })}
