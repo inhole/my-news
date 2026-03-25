@@ -18,21 +18,9 @@
 
 ## 로컬 실행
 
-루트에서 의존성을 설치합니다.
-
 ```bash
 npm install
-```
-
-백엔드 실행:
-
-```bash
 npm run dev:back
-```
-
-프론트 실행:
-
-```bash
 npm run dev:front
 ```
 
@@ -43,15 +31,8 @@ npm run dev:front
 
 ## 운영 실행
 
-전체 빌드:
-
 ```bash
 npm run build
-```
-
-운영 실행:
-
-```bash
 npm run start:prod
 ```
 
@@ -82,6 +63,7 @@ npm run start:prod
 
 ## 문서
 
+- [기능 정리](C:/dev/workspace/my-news/docs/기능-정리.md)
 - [환경 설정](C:/dev/workspace/my-news/docs/환경-설정.md)
 - [배포 체크리스트](C:/dev/workspace/my-news/docs/배포-체크리스트.md)
 - [로컬 DB 설정](C:/dev/workspace/my-news/docs/로컬-DB-설정.md)

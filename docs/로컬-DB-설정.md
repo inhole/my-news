@@ -1,6 +1,6 @@
-# 로컬 DB 설정
+# DB 설정
 
-로컬 개발에서는 Neon PostgreSQL Direct URL을 사용합니다.
+개발에서는 Neon PostgreSQL Direct URL을 사용합니다.
 
 ## 설정 순서
 
