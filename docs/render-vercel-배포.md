@@ -203,6 +203,7 @@ CORS_ORIGIN=https://my-news-front.vercel.app,https://news.example.com
 대응:
 
 - `my-news-front/package.json`에 `lightningcss`를 직접 dependency로 명시합니다.
+- Linux 빌드 환경용 `lightningcss-linux-x64-gnu`를 `optionalDependencies`에 명시합니다.
 - Vercel `Install Command`는 기본값 `npm install`로 두고 다시 배포합니다.
 
 ### Neon 연결 실패
