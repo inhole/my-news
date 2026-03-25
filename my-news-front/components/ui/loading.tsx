@@ -24,12 +24,15 @@ export function LoadingCard() {
   return (
     <div className="news-item-shell toss-card animate-pulse">
       <div className="news-item-row flex">
-        <div className="h-24 w-24 shrink-0 rounded-[22px] bg-[#eef3f8]" />
-        <div className="flex-1 space-y-3">
-          <div className="h-3 w-20 rounded-full bg-[#eaf3ff]" />
-          <div className="h-4 w-full rounded-full bg-[#eef3f8]" />
-          <div className="h-4 w-3/4 rounded-full bg-[#eef3f8]" />
-          <div className="h-3 w-24 rounded-full bg-[#eef3f8]" />
+        <div className="news-card-thumb shrink-0 rounded-[22px] bg-[#eef3f8]" />
+        <div className="flex flex-1 flex-col justify-between self-stretch">
+          <div className="space-y-3">
+            <div className="h-3 w-20 rounded-full bg-[#eaf3ff]" />
+            <div className="h-4 w-full rounded-full bg-[#eef3f8]" />
+            <div className="h-4 w-5/6 rounded-full bg-[#eef3f8]" />
+            <div className="h-4 w-2/3 rounded-full bg-[#eef3f8]" />
+          </div>
+          <div className="mt-4 h-3 w-28 rounded-full bg-[#eef3f8]" />
         </div>
       </div>
     </div>

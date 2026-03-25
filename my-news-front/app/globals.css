@@ -24,6 +24,7 @@
   --news-item-gap: 10px;
   --item-pad-x: 10px;
   --item-pad-y: 10px;
+  --news-card-min-height: 140px;
   --section-pad-x: 12px;
   --section-pad-y: 12px;
   --section-pad-sm-x: 12px;
@@ -40,12 +41,23 @@
     --page-pad-y: 10px;
     --item-pad-x: 12px;
     --item-pad-y: 12px;
+    --news-card-min-height: 166px;
     --section-pad-x: 14px;
     --section-pad-y: 14px;
     --section-pad-sm-x: 14px;
     --section-pad-sm-y: 14px;
     --top-nav-pad-x: 18px;
     --top-nav-pad-y: 5px;
+  }
+
+  .news-card-thumb {
+    width: 112px;
+    height: 112px;
+  }
+
+  .news-card-title {
+    font-size: 18px;
+    line-height: 1.5;
   }
 }
 
@@ -245,10 +257,27 @@ body {
 
 .news-item-shell {
   padding: var(--item-pad-y) var(--item-pad-x);
+  height: var(--news-card-min-height);
 }
 
 .news-item-row {
   gap: var(--news-item-gap);
+  align-items: center;
+  height: 100%;
+}
+
+.news-card-thumb {
+  width: 96px;
+  height: 96px;
+  align-self: center;
+}
+
+.news-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .item-inner-pad {
