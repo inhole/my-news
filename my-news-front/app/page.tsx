@@ -99,7 +99,7 @@ function SectionHeader({
   linkLabel?: string;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4">
+    <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
       <div className="min-w-0">
         {eyebrow ? <p className="home-eyebrow">{eyebrow}</p> : null}
         <h2 className="home-section-title">{title}</h2>

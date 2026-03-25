@@ -456,6 +456,7 @@ body {
 .home-page-stack {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .home-brief-card,
@@ -464,6 +465,7 @@ body {
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
+  min-width: 0;
 }
 
 .home-brief-card {
@@ -508,6 +510,7 @@ body {
 .editorial-list {
   display: grid;
   gap: 0;
+  min-width: 0;
 }
 
 .editorial-list-row {
@@ -516,6 +519,7 @@ body {
   gap: 14px;
   padding: 18px 0;
   border-bottom: 1px solid var(--line);
+  min-width: 0;
   transition:
     transform 180ms ease,
     opacity 180ms ease;
@@ -617,6 +621,24 @@ body {
   .home-hero-copy {
     font-size: 14px;
     line-height: 1.75;
+  }
+}
+
+@media (max-width: 479px) {
+  .home-section-surface {
+    padding: 14px;
+  }
+
+  .editorial-list-row {
+    gap: 10px;
+    padding: 14px 0;
+  }
+
+  .editorial-thumb {
+    flex-basis: 72px;
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
   }
 }
 
