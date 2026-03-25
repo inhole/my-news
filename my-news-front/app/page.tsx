@@ -476,7 +476,7 @@ function PersonalizedSection({
       <div className="mt-6">
         <EditorialList articles={articles} personalized />
       </div>
-      <div ref={sentinelRef} className="min-h-8 pt-4">
+      <div ref={sentinelRef} className="flex h-12 items-center justify-center pt-4">
         {isLoadingMore ? <LoadingSpinner size="small" /> : null}
       </div>
     </section>
@@ -601,7 +601,9 @@ function HomeContent() {
   const selectedTab = (searchParams.get('tab') as HomeTab) || 'weather';
   const [personalizedVisibleCount, setPersonalizedVisibleCount] = useState(PERSONALIZED_PAGE_SIZE);
   const [isLoadingMorePersonalized, setIsLoadingMorePersonalized] = useState(false);
+  const [orderedPersonalizedArticles, setOrderedPersonalizedArticles] = useState<PersonalizedNewsItem[]>([]);
   const personalizedSentinelRef = useRef<HTMLDivElement>(null);
+  const previousProfileUpdatedAtRef = useRef<string | undefined>(undefined);
   const {
     data,
     isLoading,
@@ -636,16 +638,36 @@ function HomeContent() {
       })),
     [articles, profile],
   );
+  useEffect(() => {
+    setOrderedPersonalizedArticles((current) => {
+      if (current.length === 0 || current.length > personalizedArticles.length) {
+        return personalizedArticles;
+      }
+
+      const nextById = new Map(personalizedArticles.map((article) => [article.id, article]));
+      const preservedIds = current.map((article) => article.id).filter((id) => nextById.has(id));
+      const preservedIdSet = new Set(preservedIds);
+      const appendedArticles = personalizedArticles.filter((article) => !preservedIdSet.has(article.id));
+
+      return [...preservedIds.map((id) => nextById.get(id)!), ...appendedArticles];
+    });
+  }, [personalizedArticles]);
   const visiblePersonalizedArticles = useMemo(
-    () => personalizedArticles.slice(0, personalizedVisibleCount),
-    [personalizedArticles, personalizedVisibleCount],
+    () => orderedPersonalizedArticles.slice(0, personalizedVisibleCount),
+    [orderedPersonalizedArticles, personalizedVisibleCount],
   );
   const canLoadMorePersonalized =
-    personalizedVisibleCount < personalizedArticles.length || Boolean(hasNextPage);
+    personalizedVisibleCount < orderedPersonalizedArticles.length || Boolean(hasNextPage);
 
   useEffect(() => {
+    if (previousProfileUpdatedAtRef.current === profile?.updatedAt) {
+      return;
+    }
+
+    previousProfileUpdatedAtRef.current = profile?.updatedAt;
     setPersonalizedVisibleCount(PERSONALIZED_PAGE_SIZE);
-  }, [profile?.updatedAt]);
+    setOrderedPersonalizedArticles(personalizedArticles);
+  }, [personalizedArticles, profile?.updatedAt]);
 
   useEffect(() => {
     const sentinel = personalizedSentinelRef.current;
@@ -662,7 +684,7 @@ function HomeContent() {
         setIsLoadingMorePersonalized(true);
 
         try {
-          if (personalizedVisibleCount >= personalizedArticles.length && hasNextPage) {
+          if (personalizedVisibleCount >= orderedPersonalizedArticles.length && hasNextPage) {
             await fetchNextPage();
           }
 
@@ -686,7 +708,7 @@ function HomeContent() {
     hasNextPage,
     isFetchingNextPage,
     isLoadingMorePersonalized,
-    personalizedArticles.length,
+    orderedPersonalizedArticles.length,
     personalizedVisibleCount,
     selectedTab,
   ]);
