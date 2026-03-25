@@ -9,7 +9,10 @@ import { ErrorMessage } from '@/components/ui/error';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { NewsThumbnail } from '@/components/news/news-thumbnail';
 import { useInfiniteNews } from '@/hooks/use-queries';
-import { getAnonymousProfile } from '@/lib/personalization/anonymous-profile';
+import {
+  getAnonymousProfile,
+  PROFILE_UPDATED_EVENT,
+} from '@/lib/personalization/anonymous-profile';
 import {
   rankPersonalizedNews,
   type PersonalizedNewsItem,
@@ -590,10 +593,12 @@ function subscribeProfile(onStoreChange: () => void) {
   const handler = () => onStoreChange();
   window.addEventListener('storage', handler);
   window.addEventListener('focus', handler);
+  window.addEventListener(PROFILE_UPDATED_EVENT, handler);
 
   return () => {
     window.removeEventListener('storage', handler);
     window.removeEventListener('focus', handler);
+    window.removeEventListener(PROFILE_UPDATED_EVENT, handler);
   };
 }
 

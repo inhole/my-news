@@ -2,21 +2,25 @@
 
 ## 변경 내용
 
-- 뉴스 수집 배치에서 AI 요약 생성 호출을 제거했다.
-- 뉴스 목록/상세 API 응답에서 `summary` 가공 필드를 제거했다.
-- 백엔드는 기사 원문 메타데이터 수집과 저장만 담당하고, 요약 생성 책임은 더 이상 가지지 않는다.
+- 뉴스 수집 배치에서 AI 요약 생성 로직을 제거했다.
+- 뉴스 목록/상세 API 응답에서 가공 `summary` 필드를 제거했다.
+- Prisma `News` 모델에서 `summaryLines`, `summaryHash` 컬럼을 삭제했다.
+- 컬럼 삭제를 위한 Prisma 마이그레이션을 추가했다.
+
+## 현재 동작
+
+- 뉴스 배치: 기사 수집, 본문 보강, 이미지 및 출처 보강, DB 저장만 수행
+- 뉴스 API: 저장된 기사 원문 데이터 중심으로 응답
+- 요약 생성: 미사용
+
+## 마이그레이션
+
+- 추가 마이그레이션: `my-news-back/prisma/migrations/20260325170000_drop_news_summary_columns/migration.sql`
+- 수행 SQL:
+  - `ALTER TABLE "News" DROP COLUMN "summaryLines", DROP COLUMN "summaryHash";`
 
 ## 영향 파일
 
 - `my-news-back/src/news/news.service.ts`
-
-## 현재 동작
-
-- 뉴스 배치: 기사 수집, 본문 크롤링, 이미지/출처 보강, DB 저장
-- 뉴스 API: 저장된 기사 원문 데이터 반환
-- 요약 생성: 미사용
-
-## 참고
-
-- Prisma 스키마의 `summaryLines`, `summaryHash` 컬럼은 현재 미사용 상태다.
-- 컬럼 삭제가 필요하면 별도 Prisma 마이그레이션으로 정리해야 한다.
+- `my-news-back/prisma/schema.prisma`
+- `my-news-back/prisma/migrations/20260325170000_drop_news_summary_columns/migration.sql`

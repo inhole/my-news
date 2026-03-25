@@ -20,9 +20,14 @@ function calculateFreshnessScore(publishedAt: string) {
   return Math.max(0, 24 - ageHours) * 0.3;
 }
 
-export function rankPersonalizedNews(articles: News[], profile: AnonymousProfile | null): PersonalizedNewsItem[] {
+export function rankPersonalizedNews(
+  articles: News[],
+  profile: AnonymousProfile | null,
+): PersonalizedNewsItem[] {
   const categoryScores = profile?.categoryScores ?? {};
   const keywordScores = profile?.keywordScores ?? {};
+  const preferredCategorySlugs = new Set(profile?.preferredCategorySlugs ?? []);
+  const preferredKeywords = new Set(profile?.preferredKeywords ?? []);
   const seenNewsIds = new Set(profile?.seenNewsIds ?? []);
 
   return articles
@@ -38,12 +43,23 @@ export function rankPersonalizedNews(articles: News[], profile: AnonymousProfile
 
       const keywordAffinity = matchedKeywords.reduce((sum, keyword) => sum + (keywordScores[keyword] ?? 0), 0);
       const categoryAffinity = categoryScores[article.category.slug] ?? 0;
+      const preferredCategoryBoost = preferredCategorySlugs.has(article.category.slug) ? 8 : 0;
+      const preferredKeywordBoost = keywords.reduce(
+        (sum, keyword) => sum + (preferredKeywords.has(keyword) ? 3 : 0),
+        0,
+      );
       const freshness = calculateFreshnessScore(article.publishedAt);
       const seenPenalty = seenNewsIds.has(article.id) ? 6 : 0;
 
       return {
         ...article,
-        personalizedScore: categoryAffinity * 2 + keywordAffinity + freshness - seenPenalty,
+        personalizedScore:
+          categoryAffinity * 2 +
+          keywordAffinity +
+          preferredCategoryBoost +
+          preferredKeywordBoost +
+          freshness -
+          seenPenalty,
         matchedKeywords,
       };
     })
