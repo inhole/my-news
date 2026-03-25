@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { Clock, ExternalLink, Share2 } from 'lucide-react';
+import { NewsThumbnail } from '@/components/news/news-thumbnail';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingPage } from '@/components/ui/loading';
 import { useNewsDetail } from '@/hooks/use-queries';
@@ -63,11 +63,9 @@ export default function NewsDetailPage() {
   return (
     <div className="mx-auto w-full max-w-[880px]">
       <article className="toss-card overflow-hidden">
-        {news.imageUrl && (
-          <div className="relative h-[260px] w-full bg-[#e5edf8] sm:h-[380px]">
-            <Image src={news.imageUrl} alt={news.title} fill priority className="object-cover" />
-          </div>
-        )}
+        <div className="relative h-[260px] w-full bg-[#e5edf8] sm:h-[380px]">
+          <NewsThumbnail src={news.imageUrl} alt={news.title} fill priority sizes="100vw" />
+        </div>
 
         <div className="section-pad">
           <p className="text-sm font-semibold text-[var(--primary-strong)]">{news.category.name}</p>

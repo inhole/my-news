@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Clock, ExternalLink } from 'lucide-react';
+import { NewsThumbnail } from '@/components/news/news-thumbnail';
 import { News } from '@/types';
 
 interface NewsCardProps {
@@ -23,24 +23,12 @@ function formatRelativeTime(dateString: string) {
   return publishedAt.toLocaleDateString('ko-KR');
 }
 
-function FallbackThumb({ title }: { title: string }) {
-  return (
-    <div className="absolute inset-0 flex items-end bg-[linear-gradient(145deg,#d8e8ff_0%,#bdd4ff_100%)] p-3">
-      <p className="line-clamp-2 text-xs font-semibold leading-5 text-[#1f2937]">{title}</p>
-    </div>
-  );
-}
-
 export function NewsCard({ news }: NewsCardProps) {
   return (
     <Link href={`/news/${news.id}`} className="block">
       <article className="news-item-shell toss-card news-item-row relative flex overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[22px] bg-[#e8f1ff] sm:h-28 sm:w-28">
-          {news.imageUrl ? (
-            <Image src={news.imageUrl} alt={news.title} fill sizes="112px" className="object-cover" />
-          ) : (
-            <FallbackThumb title={news.title} />
-          )}
+          <NewsThumbnail src={news.imageUrl} alt={news.title} fill sizes="112px" />
         </div>
 
         <div className="min-w-0 flex-1">

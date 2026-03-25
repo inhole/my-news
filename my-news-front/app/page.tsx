@@ -1,13 +1,13 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useSyncExternalStore, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight, Clock, Flame, Newspaper, Sparkles, TrendingUp } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { EmptyState } from '@/components/ui/empty';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingSpinner } from '@/components/ui/loading';
+import { NewsThumbnail } from '@/components/news/news-thumbnail';
 import { useInfiniteNews } from '@/hooks/use-queries';
 import { getAnonymousProfile } from '@/lib/personalization/anonymous-profile';
 import {
@@ -53,14 +53,6 @@ function formatPublishedLabel(dateString: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function FallbackThumb({ title }: { title: string }) {
-  return (
-    <div className="absolute inset-0 flex items-end bg-[linear-gradient(145deg,#dce9ff_0%,#bdd5ff_100%)] p-4">
-      <p className="line-clamp-2 text-sm font-semibold leading-6 text-[#1f2937]">{title}</p>
-    </div>
-  );
 }
 
 function HomeLoading() {
@@ -178,17 +170,7 @@ function EditorialList({
             </div>
 
             <div className="editorial-thumb relative">
-              {article.imageUrl ? (
-                <Image
-                  src={article.imageUrl}
-                  alt={article.title}
-                  fill
-                  sizes="(max-width: 640px) 88px, 112px"
-                  className="object-cover"
-                />
-              ) : (
-                <FallbackThumb title={article.title} />
-              )}
+              <NewsThumbnail src={article.imageUrl} alt={article.title} fill sizes="(max-width: 640px) 88px, 112px" />
             </div>
           </Link>
         );
@@ -214,11 +196,15 @@ function LeadStoryHero({
   return (
     <section className="home-hero reveal-up">
       <div className="home-hero-media">
-        {article.imageUrl ? (
-          <Image src={article.imageUrl} alt={article.title} fill priority sizes="100vw" className="object-cover" />
-        ) : (
-          <div className="home-hero-fallback" />
-        )}
+        <NewsThumbnail
+          src={article.imageUrl}
+          alt={article.title}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          fallbackClassName="absolute inset-0 object-cover"
+        />
       </div>
 
       <div className="home-hero-overlay" />
