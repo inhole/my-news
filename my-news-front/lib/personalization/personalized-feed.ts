@@ -16,7 +16,10 @@ function tokenize(text: string): string[] {
 }
 
 function calculateFreshnessScore(publishedAt: string) {
-  const ageHours = Math.max(1, (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60));
+  const ageHours = Math.max(
+    1,
+    (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60),
+  );
   return Math.max(0, 24 - ageHours) * 0.3;
 }
 
@@ -30,7 +33,14 @@ export function rankPersonalizedNews(
   const preferredKeywords = new Set(profile?.preferredKeywords ?? []);
   const seenNewsIds = new Set(profile?.seenNewsIds ?? []);
 
-  return articles
+  const candidateArticles =
+    preferredCategorySlugs.size > 0
+      ? articles.filter((article) =>
+          preferredCategorySlugs.has(article.category.slug),
+        )
+      : articles;
+
+  return candidateArticles
     .map((article) => {
       const keywords = tokenize(`${article.title} ${article.description ?? ''}`);
       const matchedKeywords = Array.from(
@@ -41,9 +51,16 @@ export function rankPersonalizedNews(
         ),
       ).slice(0, 3);
 
-      const keywordAffinity = matchedKeywords.reduce((sum, keyword) => sum + (keywordScores[keyword] ?? 0), 0);
+      const keywordAffinity = matchedKeywords.reduce(
+        (sum, keyword) => sum + (keywordScores[keyword] ?? 0),
+        0,
+      );
       const categoryAffinity = categoryScores[article.category.slug] ?? 0;
-      const preferredCategoryBoost = preferredCategorySlugs.has(article.category.slug) ? 8 : 0;
+      const preferredCategoryBoost = preferredCategorySlugs.has(
+        article.category.slug,
+      )
+        ? 8
+        : 0;
       const preferredKeywordBoost = keywords.reduce(
         (sum, keyword) => sum + (preferredKeywords.has(keyword) ? 3 : 0),
         0,
