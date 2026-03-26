@@ -53,6 +53,12 @@ npm run start:prod
 - `OPEN_METEO_API_URL`
 - `OPEN_METEO_AIR_QUALITY_API_URL`
 
+날씨 API 운영 메모
+
+- 동일 좌표 동시 요청은 서버에서 하나의 외부 호출로 합쳐 Open-Meteo rate limit 부담을 줄입니다.
+- Open-Meteo `429`, `408`, `5xx`, 타임아웃은 최대 3회까지 짧게 재시도합니다.
+- 외부 날씨 API 호출이 실패해도 최근 캐시가 있으면 stale cache를 반환합니다.
+
 ## 배포 전 확인
 
 - `npm run lint`

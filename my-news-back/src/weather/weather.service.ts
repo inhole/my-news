@@ -50,6 +50,10 @@ export class WeatherService {
   private readonly openMeteoApiUrl: string;
   private readonly openMeteoAirQualityApiUrl: string;
   private readonly cacheDurationMinutes = 10;
+  private readonly inflightRequests = new Map<string, Promise<Weather>>();
+  private readonly weatherRequestTimeoutMs = 15000;
+  private readonly weatherRetryDelayMs = 1200;
+  private readonly maxWeatherFetchAttempts = 3;
 
   constructor(
     private prisma: PrismaService,
@@ -66,6 +70,7 @@ export class WeatherService {
   async getWeather(lat: number, lon: number): Promise<Weather> {
     const roundedLat = Math.round(lat * 100) / 100;
     const roundedLon = Math.round(lon * 100) / 100;
+    const cacheKey = this.getCacheKey(roundedLat, roundedLon);
 
     const cached = await this.prisma.weatherCache.findUnique({
       where: {
@@ -88,40 +93,75 @@ export class WeatherService {
       );
     }
 
+    const inFlight = this.inflightRequests.get(cacheKey);
+    if (inFlight) {
+      this.logger.log(`Joining in-flight weather request for: ${cacheKey}`);
+      return inFlight;
+    }
+
+    const fetchPromise = this.fetchAndCacheWeather(
+      roundedLat,
+      roundedLon,
+      cached,
+    ).finally(() => {
+      this.inflightRequests.delete(cacheKey);
+    });
+
+    this.inflightRequests.set(cacheKey, fetchPromise);
+    return fetchPromise;
+  }
+
+  async cleanExpiredCache(): Promise<number> {
+    const result = await this.prisma.weatherCache.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+
+    this.logger.log(`Cleaned ${result.count} expired weather cache entries`);
+    return result.count;
+  }
+
+  private async fetchAndCacheWeather(
+    roundedLat: number,
+    roundedLon: number,
+    staleCache: {
+      data: Prisma.JsonValue;
+      expiresAt: Date;
+    } | null,
+  ): Promise<Weather> {
     try {
       const [forecastResponse, airQualityResponse] = await Promise.all([
-        axios.get<OpenMeteoForecastPayload>(
+        this.fetchWithRetry<OpenMeteoForecastPayload>(
           `${this.openMeteoApiUrl}/forecast`,
           {
-            params: {
-              latitude: roundedLat,
-              longitude: roundedLon,
-              current:
-                'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation',
-              hourly: 'temperature_2m,weather_code',
-              daily:
-                'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset',
-              forecast_days: 7,
-              timezone: 'auto',
-            },
+            latitude: roundedLat,
+            longitude: roundedLon,
+            current:
+              'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation',
+            hourly: 'temperature_2m,weather_code',
+            daily:
+              'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset',
+            forecast_days: 7,
+            timezone: 'auto',
           },
         ),
-        axios.get<OpenMeteoAirQualityPayload>(
+        this.fetchWithRetry<OpenMeteoAirQualityPayload>(
           `${this.openMeteoAirQualityApiUrl}/air-quality`,
           {
-            params: {
-              latitude: roundedLat,
-              longitude: roundedLon,
-              current: 'pm10,pm2_5,us_aqi,european_aqi',
-              timezone: 'auto',
-            },
+            latitude: roundedLat,
+            longitude: roundedLon,
+            current: 'pm10,pm2_5,us_aqi,european_aqi',
+            timezone: 'auto',
           },
         ),
       ]);
 
       const weatherData: OpenMeteoPayload = {
-        forecast: forecastResponse.data,
-        airQuality: airQualityResponse.data,
+        forecast: forecastResponse,
+        airQuality: airQualityResponse,
       };
 
       const weatherDataForCache = weatherData as Prisma.InputJsonValue;
@@ -158,21 +198,91 @@ export class WeatherService {
       );
     } catch (error) {
       this.logger.error('Error fetching weather data (Open-Meteo)', error);
+
+      if (staleCache) {
+        this.logger.warn(
+          `Serving stale weather cache for: ${roundedLat}, ${roundedLon}`,
+        );
+        return this.transformWeatherPayload(
+          roundedLat,
+          roundedLon,
+          staleCache.data as OpenMeteoPayload,
+          staleCache.expiresAt,
+        );
+      }
+
       throw new BadGatewayException('Failed to fetch weather data');
     }
   }
 
-  async cleanExpiredCache(): Promise<number> {
-    const result = await this.prisma.weatherCache.deleteMany({
-      where: {
-        expiresAt: {
-          lt: new Date(),
-        },
-      },
-    });
+  private async fetchWithRetry<T>(
+    url: string,
+    params: Record<string, string | number>,
+  ): Promise<T> {
+    let lastError: unknown;
 
-    this.logger.log(`Cleaned ${result.count} expired weather cache entries`);
-    return result.count;
+    for (
+      let attempt = 1;
+      attempt <= this.maxWeatherFetchAttempts;
+      attempt += 1
+    ) {
+      try {
+        const response = await axios.get<T>(url, {
+          params,
+          timeout: this.weatherRequestTimeoutMs,
+        });
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        const shouldRetry =
+          attempt < this.maxWeatherFetchAttempts &&
+          this.isRetryableWeatherError(error);
+
+        if (!shouldRetry) {
+          break;
+        }
+
+        const status = this.getAxiosStatus(error);
+        this.logger.warn(
+          `Retrying weather request (${attempt}/${this.maxWeatherFetchAttempts}) for ${url}${status ? ` - status ${status}` : ''}`,
+        );
+        await this.delay(this.weatherRetryDelayMs * attempt);
+      }
+    }
+
+    throw lastError;
+  }
+
+  private isRetryableWeatherError(error: unknown): boolean {
+    if (!axios.isAxiosError(error)) {
+      return false;
+    }
+
+    const status = error.response?.status;
+    return (
+      status === 429 ||
+      status === 408 ||
+      (typeof status === 'number' && status >= 500) ||
+      error.code === 'ECONNABORTED'
+    );
+  }
+
+  private getAxiosStatus(error: unknown): number | undefined {
+    if (!axios.isAxiosError(error)) {
+      return undefined;
+    }
+
+    return error.response?.status;
+  }
+
+  private getCacheKey(lat: number, lon: number): string {
+    return `${lat}:${lon}`;
+  }
+
+  private async delay(ms: number): Promise<void> {
+    await new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   private transformWeatherPayload(
