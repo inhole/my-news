@@ -102,7 +102,7 @@ OPEN_METEO_AIR_QUALITY_API_URL=https://air-quality-api.open-meteo.com/v1
 Render 무료 플랜은 일정 시간 트래픽이 없으면 슬립될 수 있으므로 GitHub Actions 스케줄로 `/health`를 주기적으로 호출할 수 있습니다.
 
 - 워크플로 파일: `.github/workflows/ping-render.yml`
-- 호출 주기: 매시 `3,13,23,33,43,53`분
+- 호출 주기: 5분마다
 - 호출 대상: 백엔드 `/health`
 
 설정 방법:
@@ -120,6 +120,7 @@ RENDER_HEALTHCHECK_URL=https://my-news-back.onrender.com/health
 주의:
 
 - GitHub Actions schedule은 지연될 수 있으므로 완전한 실시간 보장은 아닙니다.
+- Render 슬립 복귀가 느릴 수 있어 워크플로에서 재시도 2회와 최대 60초 타임아웃을 사용합니다.
 - 워크플로가 실패하면 슬립 방지가 끊기므로 Actions 실행 이력을 함께 확인합니다.
 
 ## 4. Vercel에 프런트 배포

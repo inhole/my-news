@@ -2,7 +2,7 @@ name: Ping Render
 
 on:
   schedule:
-    - cron: '3,13,23,33,43,53 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,4 +18,8 @@ jobs:
             exit 1
           fi
 
-          curl --fail --silent --show-error --max-time 20 "$RENDER_HEALTHCHECK_URL" > /dev/null
+          curl --fail --silent --show-error \
+            --retry 2 \
+            --retry-delay 10 \
+            --max-time 60 \
+            "$RENDER_HEALTHCHECK_URL" > /dev/null
