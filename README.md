@@ -60,11 +60,12 @@ npm run start:prod
 - `npm run build`
 - `/health` 확인
 - 프론트 `/api` 리라이트 확인
+- GitHub Actions `Ping Render` 워크플로와 `RENDER_HEALTHCHECK_URL` 시크릿 확인
 
 ## 문서
 
-- [기능 정리](C:/dev/workspace/my-news/docs/기능-정리.md)
-- [환경 설정](C:/dev/workspace/my-news/docs/환경-설정.md)
-- [배포 체크리스트](C:/dev/workspace/my-news/docs/배포-체크리스트.md)
-- [로컬 DB 설정](C:/dev/workspace/my-news/docs/로컬-DB-설정.md)
-- [개인화 구조](C:/dev/workspace/my-news/docs/개인화-구조.md)
+- [기능 정리](docs/기능-정리.md)
+- [환경 설정](docs/환경-설정.md)
+- [배포 체크리스트](docs/배포-체크리스트.md)
+- [로컬 DB 설정](docs/로컬-DB-설정.md)
+- [개인화 구조](docs/개인화-구조.md)

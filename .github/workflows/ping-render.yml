@@ -1,0 +1,21 @@
+name: Ping Render
+
+on:
+  schedule:
+    - cron: '3,13,23,33,43,53 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render health endpoint
+        env:
+          RENDER_HEALTHCHECK_URL: ${{ secrets.RENDER_HEALTHCHECK_URL }}
+        run: |
+          if [ -z "$RENDER_HEALTHCHECK_URL" ]; then
+            echo "RENDER_HEALTHCHECK_URL secret is not set."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --max-time 20 "$RENDER_HEALTHCHECK_URL" > /dev/null
