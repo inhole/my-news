@@ -5,6 +5,7 @@ import { Cheerio, CheerioAPI, load } from 'cheerio';
 import type { AnyNode, Element } from 'domhandler';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
+import { NewsRagService } from './news-rag.service';
 
 type NaverSort = 'sim' | 'date';
 type CheerioNode = Cheerio<AnyNode>;
@@ -52,6 +53,7 @@ export class NewsService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private newsRagService: NewsRagService,
   ) {
     this.naverClientId =
       this.configService.get<string>('NAVER_CLIENT_ID') || '';
@@ -238,7 +240,7 @@ export class NewsService {
         const resolvedImageUrl =
           crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
 
-        await this.prisma.news.upsert({
+        const savedNews = await this.prisma.news.upsert({
           where: { url },
           update: {
             title: resolvedTitle,
@@ -263,6 +265,12 @@ export class NewsService {
             author: null,
             categoryId: categoryRecord.id,
           },
+        });
+
+        this.newsRagService.indexNews(savedNews.id).catch((error) => {
+          this.logger.warn(
+            `Failed to index news embedding for ${savedNews.id}: ${String(error)}`,
+          );
         });
 
         savedCount += 1;

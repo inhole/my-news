@@ -32,11 +32,26 @@ model News {
   author      String?
   categoryId  String?
   category    Category?  @relation(fields: [categoryId], references: [id])
+  embeddings  NewsEmbedding[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   @@index([publishedAt])
   @@index([categoryId])
+}
+
+model NewsEmbedding {
+  id        String   @id @default(uuid())
+  newsId    String
+  chunkText String
+  chunkHash String   @unique
+  model     String
+  embedding Unsupported("vector")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  news      News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
+  @@index([newsId])
 }
 
 model WeatherCache {

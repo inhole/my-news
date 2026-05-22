@@ -1,12 +1,18 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GetNewsDto } from './dto/get-news.dto';
+import { ReindexNewsEmbeddingsDto } from './dto/reindex-news-embeddings.dto';
+import { SemanticSearchDto } from './dto/semantic-search.dto';
+import { NewsRagService } from './news-rag.service';
 import { NewsService } from './news.service';
 
 @ApiTags('news')
 @Controller('news')
 export class NewsController {
-  constructor(private readonly newsService: NewsService) {}
+  constructor(
+    private readonly newsService: NewsService,
+    private readonly newsRagService: NewsRagService,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -45,6 +51,26 @@ export class NewsController {
       query.cursor,
       query.limit,
     );
+  }
+
+  @Get('semantic-search')
+  @ApiOperation({
+    summary: '뉴스 의미 검색',
+    description: 'RAG 임베딩을 사용해 의미적으로 가까운 뉴스를 조회합니다.',
+  })
+  @ApiResponse({ status: 200, description: '뉴스 의미 검색 성공' })
+  async semanticSearch(@Query() query: SemanticSearchDto) {
+    return this.newsRagService.semanticSearch(query.q, query.limit);
+  }
+
+  @Post('embeddings/reindex')
+  @ApiOperation({
+    summary: '뉴스 임베딩 재색인',
+    description: '최근 뉴스 본문을 chunk로 나누고 RAG 임베딩을 생성합니다.',
+  })
+  @ApiResponse({ status: 201, description: '뉴스 임베딩 재색인 성공' })
+  async reindexNewsEmbeddings(@Body() body: ReindexNewsEmbeddingsDto) {
+    return this.newsRagService.indexRecentNews(body.limit);
   }
 
   @Get(':id')
