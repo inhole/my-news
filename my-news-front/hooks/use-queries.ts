@@ -1,6 +1,7 @@
 export {
   useInfiniteNews,
   useInfiniteSearchNews,
+  useSemanticSearchNews,
   useNewsDetail,
   useCategories,
   useFetchNews,

@@ -9,6 +9,10 @@ export interface News {
   summary?: string | null;
   summaryLines?: string[];
   llmSummary?: NewsSummary | null;
+  rag?: {
+    matchedChunk: string;
+    similarity: number;
+  };
   url: string;
   imageUrl: string | null;
   publishedAt: string;

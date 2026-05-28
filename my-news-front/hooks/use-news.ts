@@ -9,13 +9,14 @@ import {
 import { newsApi } from '@/lib/api';
 import type { NewsSummary } from '@/types';
 
-export function useInfiniteNews(category?: string, search?: string) {
+export function useInfiniteNews(category?: string, search?: string, enabled = true) {
   return useInfiniteQuery({
     queryKey: ['news', category, search],
     queryFn: ({ pageParam }) => newsApi.getNews(pageParam, 20, category, search),
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.nextCursor : undefined,
     initialPageParam: undefined as string | undefined,
+    enabled,
   });
 }
 
@@ -27,6 +28,14 @@ export function useInfiniteSearchNews(keyword: string) {
       lastPage.hasMore ? lastPage.nextCursor : undefined,
     initialPageParam: undefined as string | undefined,
     enabled: !!keyword,
+  });
+}
+
+export function useSemanticSearchNews(keyword: string, enabled = true) {
+  return useQuery({
+    queryKey: ['news', 'semantic-search', keyword],
+    queryFn: () => newsApi.semanticSearchNews(keyword, 20),
+    enabled: enabled && !!keyword,
   });
 }
 

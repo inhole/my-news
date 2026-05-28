@@ -8,8 +8,9 @@ function NewsPageContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get('category') || undefined;
   const search = searchParams.get('search') || undefined;
+  const searchMode = searchParams.get('mode') === 'semantic' ? 'semantic' : 'keyword';
 
-  return <NewsList category={category} search={search} />;
+  return <NewsList category={category} search={search} searchMode={searchMode} />;
 }
 
 export default function NewsPage() {

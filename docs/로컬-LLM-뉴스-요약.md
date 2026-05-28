@@ -1,6 +1,6 @@
 # 로컬 LLM 뉴스 요약
 
-이 문서는 뉴스 상세 화면의 AI 요약 기능만 다룹니다. RAG 벡터 검색은 `docs/rag-vector-pipeline.md`를 참고합니다.
+이 문서는 뉴스 상세 화면의 AI 요약 기능만 다룹니다. RAG 벡터 검색은 `docs/RAG-벡터-파이프라인.md`를 참고합니다.
 
 ## 구성
 
@@ -10,16 +10,24 @@
 - 요약 API: `POST /news/:id/summary`
 - 프론트 노출 위치: 뉴스 상세 화면 AI 요약 영역
 
-## 로컬 준비
+## 동작 로직
 
-1. Ollama를 설치하고 실행합니다.
-2. 요약 모델을 내려받습니다.
+```text
+사용자가 뉴스 상세 화면 진입
+  -> AI 요약 버튼 클릭
+  -> POST /news/:id/summary
+  -> 기사 본문 hash 계산
+  -> 캐시가 있으면 NewsLlmSummary 반환
+  -> 캐시가 없으면 Ollama generate 호출
+  -> 3줄 요약 저장
+  -> 프론트에 요약 표시
+```
+
+## 로컬 준비
 
 ```bash
 ollama pull qwen3:1.7b
 ```
-
-3. `my-news-back/.env`에 로컬 LLM 요약 설정을 추가합니다.
 
 ```env
 ENABLE_LOCAL_LLM_SUMMARY=true
@@ -28,24 +36,7 @@ LOCAL_LLM_MODEL=qwen3:1.7b
 LOCAL_LLM_SUMMARY_MAX_INPUT=6000
 ```
 
-## DB 반영
-
-요약 캐시는 `NewsLlmSummary` 테이블에 저장됩니다.
-
-```bash
-npm run db:migrate:dev --workspace my-news-back
-npm run db:generate --workspace my-news-back
-```
-
-운영 반영은 배포 전에 아래 명령을 사용합니다.
-
-```bash
-npm run db:migrate:deploy --workspace my-news-back
-```
-
 ## API 흐름
-
-뉴스 상세 화면의 AI 요약 버튼은 아래 API를 호출합니다.
 
 ```http
 POST /news/{id}/summary
@@ -68,17 +59,15 @@ Content-Type: application/json
 
 기본 요약 모델은 `qwen3:1.7b`입니다.
 
-선택 이유:
-
 - Ollama 라이브러리 기준 약 1.4GB 모델이라 `qwen2.5:3b`보다 가볍습니다.
 - Qwen3 계열은 100개 이상 언어 지원을 제공해 한국어 뉴스 요약에 더 적합합니다.
 - `llama3.2:1b`보다 크지만, 한국어 출력 안정성과 요약 품질을 고려하면 더 현실적인 저비용 기본값입니다.
 
 더 낮은 리소스가 필요하면 `llama3.2:1b` 또는 `qwen3:0.6b`를 테스트할 수 있습니다. 다만 한국어 요약 품질은 반드시 직접 확인해야 합니다.
 
-## 운영 환경 판단
+## 운영 판단
 
-무료 Render Web Service에서 Ollama와 로컬 LLM 모델을 직접 실행하는 구성은 권장하지 않습니다. 무료 인스턴스는 메모리/CPU가 작고, spin down 및 임시 파일시스템 제약 때문에 모델 파일 유지와 안정적인 추론이 어렵습니다.
+무료 Render Web Service에서 Ollama와 로컬 LLM 모델을 직접 실행하는 구성은 권장하지 않습니다.
 
 무료 운영 환경에서는 기본적으로 아래처럼 둡니다.
 
@@ -88,7 +77,7 @@ ENABLE_LOCAL_LLM_SUMMARY=false
 
 운영에서 요약이 꼭 필요하면 외부 LLM API 또는 별도 Ollama 서버를 붙입니다.
 
-자세한 운영 판단과 대안은 `docs/rag-local-llm-production-review.md`를 참고합니다.
+자세한 운영 판단과 대안은 `docs/RAG-로컬-LLM-운영-검토.md`를 참고합니다.
 
 ## 주의
 
