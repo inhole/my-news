@@ -19,7 +19,6 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
   const router = useRouter();
   const searchParams = useSearchParams();
   const observerRef = useRef<HTMLDivElement>(null);
-  const [searchInput, setSearchInput] = useState(search || '');
   const isSemanticMode = Boolean(search) && searchMode === 'semantic';
 
   const keywordQuery = useInfiniteNews(category, search, !isSemanticMode);
@@ -32,10 +31,6 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
   const isError = isSemanticMode ? semanticQuery.isError : keywordQuery.isError;
   const error = isSemanticMode ? semanticQuery.error : keywordQuery.error;
   const refetch = isSemanticMode ? semanticQuery.refetch : keywordQuery.refetch;
-
-  useEffect(() => {
-    setSearchInput(search || '');
-  }, [search]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -66,9 +61,8 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
     router.push(nextParams.toString() ? `/news?${nextParams.toString()}` : '/news');
   };
 
-  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const keyword = searchInput.trim();
+  const handleSearchSubmit = (value: string) => {
+    const keyword = value.trim();
     const nextParams = new URLSearchParams(searchParams.toString());
 
     nextParams.delete('cursor');
@@ -82,7 +76,6 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
   };
 
   const handleSearchClear = () => {
-    setSearchInput('');
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete('search');
     nextParams.delete('mode');
@@ -94,8 +87,8 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
   ) : null;
   const searchBar = (
     <SearchBar
-      value={searchInput}
-      onChange={setSearchInput}
+      key={search || 'empty-search'}
+      initialValue={search || ''}
       onSubmit={handleSearchSubmit}
       onClear={handleSearchClear}
     />
@@ -171,32 +164,42 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
 }
 
 function SearchBar({
-  value,
-  onChange,
+  initialValue,
   onSubmit,
   onClear,
 }: {
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  initialValue: string;
+  onSubmit: (value: string) => void;
   onClear: () => void;
 }) {
+  const [value, setValue] = useState(initialValue);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSubmit(value);
+  };
+
+  const handleClear = () => {
+    setValue('');
+    onClear();
+  };
+
   return (
     <form
-      onSubmit={onSubmit}
+      onSubmit={handleSubmit}
       className="mb-3 flex items-center gap-2 rounded-[8px] border border-[var(--line)] bg-white px-3 py-2"
     >
       <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" />
       <input
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => setValue(event.target.value)}
         placeholder="뉴스 검색"
         className="h-9 min-w-0 flex-1 bg-transparent text-sm font-medium text-[#111827] outline-none placeholder:text-[#9ca3af]"
       />
       {value ? (
         <button
           type="button"
-          onClick={onClear}
+          onClick={handleClear}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-[#6b7280] hover:bg-[var(--surface-soft)]"
           aria-label="검색어 지우기"
           title="검색어 지우기"
