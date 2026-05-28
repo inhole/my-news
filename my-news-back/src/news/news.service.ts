@@ -126,6 +126,7 @@ export class NewsService {
       where: { id },
       include: {
         category: true,
+        llmSummary: true,
       },
     });
   }

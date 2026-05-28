@@ -3,8 +3,10 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GetNewsDto } from './dto/get-news.dto';
 import { ReindexNewsEmbeddingsDto } from './dto/reindex-news-embeddings.dto';
 import { SemanticSearchDto } from './dto/semantic-search.dto';
+import { SummarizeNewsDto } from './dto/summarize-news.dto';
 import { NewsRagService } from './news-rag.service';
 import { NewsService } from './news.service';
+import { NewsSummaryService } from './news-summary.service';
 
 @ApiTags('news')
 @Controller('news')
@@ -12,6 +14,7 @@ export class NewsController {
   constructor(
     private readonly newsService: NewsService,
     private readonly newsRagService: NewsRagService,
+    private readonly newsSummaryService: NewsSummaryService,
   ) {}
 
   @Get()
@@ -71,6 +74,24 @@ export class NewsController {
   @ApiResponse({ status: 201, description: '뉴스 임베딩 재색인 성공' })
   async reindexNewsEmbeddings(@Body() body: ReindexNewsEmbeddingsDto) {
     return this.newsRagService.indexRecentNews(body.limit);
+  }
+
+  @Post(':id/summary')
+  @ApiOperation({
+    summary: '뉴스 로컬 LLM 요약',
+    description: '로컬 LLM으로 뉴스 본문을 3줄 요약하고 결과를 캐시합니다.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: '뉴스 ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({ status: 201, description: '뉴스 요약 성공' })
+  async summarizeNews(
+    @Param('id') id: string,
+    @Body() body: SummarizeNewsDto,
+  ) {
+    return this.newsSummaryService.summarizeNews(id, body.refresh);
   }
 
   @Get(':id')

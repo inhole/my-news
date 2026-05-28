@@ -3,7 +3,7 @@ import {
   normalizeNews,
   normalizeNewsListResponse,
 } from '@/lib/api/news-normalizer';
-import { Category, News, NewsListResponse } from '@/types';
+import { Category, News, NewsListResponse, NewsSummary } from '@/types';
 
 export const newsApi = {
   getNews: async (
@@ -47,6 +47,14 @@ export const newsApi = {
   getNewsById: async (id: string): Promise<News> => {
     const response = await apiClient.get(`/news/${id}`);
     return normalizeNews(response.data);
+  },
+
+  summarizeNews: async (
+    id: string,
+    refresh = false,
+  ): Promise<NewsSummary> => {
+    const response = await apiClient.post(`/news/${id}/summary`, { refresh });
+    return response.data;
   },
 
   fetchNews: async (
