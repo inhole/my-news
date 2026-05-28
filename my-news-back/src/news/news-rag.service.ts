@@ -28,6 +28,13 @@ interface SearchRow {
   similarity: number;
 }
 
+interface RankedSearchItem {
+  row: SearchRow;
+  lexicalScore: number;
+  matchedTokenCount: number;
+  score: number;
+}
+
 interface NewsForEmbedding {
   id: string;
   title: string;
@@ -129,6 +136,8 @@ export class NewsRagService {
 
     const embedding = await this.createEmbedding(normalizedQuery);
     const vector = this.toVectorLiteral(embedding);
+    const candidateLimit = Math.max(limit * 20, 100);
+    const queryTokens = this.tokenize(normalizedQuery);
     const rows = await this.prisma.$queryRaw<SearchRow[]>`
       WITH ranked_chunks AS (
         SELECT
@@ -140,8 +149,9 @@ export class NewsRagService {
             ORDER BY e.embedding <=> ${vector}::vector
           ) AS rank
         FROM "NewsEmbedding" e
+        WHERE e.model = ${this.embeddingModel}
         ORDER BY e.embedding <=> ${vector}::vector
-        LIMIT ${limit * 5}
+        LIMIT ${candidateLimit}
       )
       SELECT
         n.id,
@@ -175,11 +185,13 @@ export class NewsRagService {
       LEFT JOIN "Category" c ON c.id = n."categoryId"
       WHERE r.rank = 1
       ORDER BY r.distance, n."publishedAt" DESC
-      LIMIT ${limit};
     `;
+    const rankedItems = this.rankSearchRows(rows, queryTokens)
+      .filter((item) => this.shouldKeepSearchItem(item, queryTokens))
+      .slice(0, limit);
 
     return {
-      items: rows.map((row) => ({
+      items: rankedItems.map(({ row }) => ({
         id: row.id,
         title: row.title,
         description: row.description,
@@ -329,6 +341,151 @@ export class NewsRagService {
       .replace(/\n[ \t]+/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+  }
+
+  private rankSearchRows(
+    rows: SearchRow[],
+    queryTokens: string[],
+  ): RankedSearchItem[] {
+    return rows
+      .map((row) => {
+        const lexicalMatch = this.calculateLexicalMatch(row, queryTokens);
+
+        return {
+          row,
+          lexicalScore: lexicalMatch.score,
+          matchedTokenCount: lexicalMatch.matchedTokenCount,
+          score:
+            Number(row.similarity) + Math.min(lexicalMatch.score * 0.08, 0.4),
+        };
+      })
+      .sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+
+        return (
+          new Date(b.row.publishedAt).getTime() -
+          new Date(a.row.publishedAt).getTime()
+        );
+      });
+  }
+
+  private shouldKeepSearchItem(
+    item: RankedSearchItem,
+    queryTokens: string[],
+  ): boolean {
+    if (queryTokens.length === 0) {
+      return item.row.similarity >= 0.8;
+    }
+
+    if (item.lexicalScore > 0 && item.matchedTokenCount > 0) {
+      return true;
+    }
+
+    return item.row.similarity >= 0.82;
+  }
+
+  private calculateLexicalMatch(
+    row: SearchRow,
+    queryTokens: string[],
+  ): { score: number; matchedTokenCount: number } {
+    if (queryTokens.length === 0) {
+      return { score: 0, matchedTokenCount: 0 };
+    }
+
+    const title = this.searchableText(row.title);
+    const description = this.searchableText(row.description || '');
+    const content = this.searchableText(row.content || '');
+    const chunk = this.searchableText(row.matchedChunk || '');
+    const searchableFields = { title, description, content, chunk };
+    const fieldWords = {
+      title: this.toWordSet(title),
+      description: this.toWordSet(description),
+      content: this.toWordSet(content),
+      chunk: this.toWordSet(chunk),
+    };
+
+    return queryTokens.reduce(
+      (match, token) => {
+        const matchedFields = {
+          title: this.hasToken(searchableFields.title, fieldWords.title, token),
+          description: this.hasToken(
+            searchableFields.description,
+            fieldWords.description,
+            token,
+          ),
+          chunk: this.hasToken(searchableFields.chunk, fieldWords.chunk, token),
+          content: this.hasToken(
+            searchableFields.content,
+            fieldWords.content,
+            token,
+          ),
+        };
+
+        if (
+          matchedFields.title ||
+          matchedFields.description ||
+          matchedFields.chunk ||
+          matchedFields.content
+        ) {
+          match.matchedTokenCount += 1;
+        }
+
+        if (matchedFields.title) {
+          match.score += 4;
+          return match;
+        }
+
+        if (matchedFields.description) {
+          match.score += 2;
+          return match;
+        }
+
+        if (matchedFields.chunk) {
+          match.score += 2;
+          return match;
+        }
+
+        if (matchedFields.content) {
+          match.score += 1;
+        }
+
+        return match;
+      },
+      { score: 0, matchedTokenCount: 0 },
+    );
+  }
+
+  private hasToken(text: string, words: Set<string>, token: string): boolean {
+    if (token.length <= 2) {
+      return words.has(token);
+    }
+
+    return text.includes(token);
+  }
+
+  private toWordSet(value: string): Set<string> {
+    return new Set(value.split(/\s+/).filter(Boolean));
+  }
+
+  private tokenize(value: string): string[] {
+    return Array.from(
+      new Set(
+        this.searchableText(value)
+          .split(/\s+/)
+          .map((token) => token.trim())
+          .filter((token) => token.length >= 2),
+      ),
+    );
+  }
+
+  private searchableText(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
   }
 
