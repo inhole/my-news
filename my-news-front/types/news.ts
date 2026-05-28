@@ -8,6 +8,11 @@ export interface News {
   contentHtml?: string | null;
   summary?: string | null;
   summaryLines?: string[];
+  llmSummary?: NewsSummary | null;
+  rag?: {
+    matchedChunk: string;
+    similarity: number;
+  };
   url: string;
   imageUrl: string | null;
   publishedAt: string;
@@ -25,5 +30,9 @@ export interface NewsListResponse {
 
 export interface NewsSummary {
   id: string;
+  newsId?: string;
   summary: string;
+  summaryLines?: string[];
+  model?: string;
+  cached?: boolean;
 }

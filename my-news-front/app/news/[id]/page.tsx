@@ -1,16 +1,17 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Clock, ExternalLink, Share2 } from 'lucide-react';
+import { Clock, ExternalLink, Share2, Sparkles } from 'lucide-react';
 import { NewsThumbnail } from '@/components/news/news-thumbnail';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingPage } from '@/components/ui/loading';
-import { useNewsDetail } from '@/hooks/use-queries';
+import { useNewsDetail, useSummarizeNews } from '@/hooks/use-queries';
 
 export default function NewsDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const { data: news, isLoading, isError, error, refetch } = useNewsDetail(id);
+  const summarizeNews = useSummarizeNews(id);
 
   const handleShare = async () => {
     if (navigator.share && news) {
@@ -59,6 +60,13 @@ export default function NewsDetailPage() {
 
   const bodyHtml = news.contentHtml?.trim() || '';
   const bodyText = news.content?.trim() || news.description?.trim() || '';
+  const summary = summarizeNews.data ?? news.llmSummary;
+  const summaryLines =
+    summary?.summaryLines && summary.summaryLines.length > 0
+      ? summary.summaryLines
+      : summary?.summary
+        ? [summary.summary]
+        : [];
 
   return (
     <div className="mx-auto w-full max-w-[880px]">
@@ -102,6 +110,46 @@ export default function NewsDetailPage() {
               </a>
             </div>
           </div>
+
+          <section className="mt-6 rounded-[8px] border border-[#dbeafe] bg-[#f8fbff] p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
+                  <Sparkles className="h-4 w-4" />
+                  <span>AI 요약</span>
+                </div>
+                {summaryLines.length > 0 ? (
+                  <ul className="mt-3 space-y-2 text-[15px] leading-7 text-[#374151]">
+                    {summaryLines.map((line, index) => (
+                      <li key={`${line}-${index}`} className="flex gap-2">
+                        <span className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--primary-strong)]" />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+                    로컬 LLM으로 기사 핵심 내용을 3줄로 정리합니다.
+                  </p>
+                )}
+                {summarizeNews.isError ? (
+                  <p className="mt-3 text-sm text-[#dc2626]">
+                    요약을 만들지 못했습니다. 로컬 LLM 설정과 Ollama 실행 상태를 확인해 주세요.
+                  </p>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => summarizeNews.mutate(summaryLines.length > 0)}
+                disabled={summarizeNews.isPending}
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[8px] bg-[var(--primary)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>{summarizeNews.isPending ? '요약 중' : summaryLines.length > 0 ? '다시 요약' : '요약 생성'}</span>
+              </button>
+            </div>
+          </section>
 
           <div className="mt-6 text-[16px] leading-8 text-[#374151]">
             {bodyHtml ? (

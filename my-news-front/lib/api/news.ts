@@ -2,8 +2,9 @@ import apiClient from '@/lib/api-client';
 import {
   normalizeNews,
   normalizeNewsListResponse,
+  normalizeSemanticNewsResponse,
 } from '@/lib/api/news-normalizer';
-import { Category, News, NewsListResponse } from '@/types';
+import { Category, News, NewsListResponse, NewsSummary } from '@/types';
 
 export const newsApi = {
   getNews: async (
@@ -44,9 +45,30 @@ export const newsApi = {
     return normalizeNewsListResponse(response.data);
   },
 
+  semanticSearchNews: async (
+    keyword: string,
+    limit = 20,
+  ): Promise<NewsListResponse> => {
+    const params = new URLSearchParams({
+      q: keyword,
+      limit: limit.toString(),
+    });
+
+    const response = await apiClient.get(`/news/semantic-search?${params.toString()}`);
+    return normalizeSemanticNewsResponse(response.data);
+  },
+
   getNewsById: async (id: string): Promise<News> => {
     const response = await apiClient.get(`/news/${id}`);
     return normalizeNews(response.data);
+  },
+
+  summarizeNews: async (
+    id: string,
+    refresh = false,
+  ): Promise<NewsSummary> => {
+    const response = await apiClient.post(`/news/${id}/summary`, { refresh });
+    return response.data;
   },
 
   fetchNews: async (

@@ -34,10 +34,22 @@ export function NewsCard({ news }: NewsCardProps) {
         <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-[var(--primary-strong)]">{news.category.name}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[12px] font-semibold text-[var(--primary-strong)]">{news.category.name}</p>
+                {news.rag ? (
+                  <span className="rounded-[6px] bg-[#eef6ff] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--primary-strong)]">
+                    의미 {Math.round(news.rag.similarity * 100)}%
+                  </span>
+                ) : null}
+              </div>
               <h3 className="news-card-title mt-1 text-[17px] font-bold text-[var(--text)]">
                 {news.title}
               </h3>
+              {news.rag?.matchedChunk ? (
+                <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-[#6b7280]">
+                  {news.rag.matchedChunk}
+                </p>
+              ) : null}
             </div>
 
             <a

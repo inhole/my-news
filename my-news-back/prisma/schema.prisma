@@ -1,5 +1,30 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// === 마이그레이션 명령어 ===
+// 스키마 수정 후 다음 명령어를 실행하세요 (my-news-back 디렉토리에서):
+//
+// 1. 개발 환경 (추천): 마이그레이션 파일 생성 + DB 적용 + Prisma Client 업데이트
+//    npm run db:migrate:dev
+//    명령 실행 후 마이그레이션 이름을 입력하면 파일이 자동 생성됩니다.
+//
+// 2. 스키마 시험 (빠른 피드백): 마이그레이션 파일 없이 DB에만 반영
+//    npm run db:push
+//    주의: 마이그레이션 파일이 없어 배포 시 재작성 필요
+//
+// 3. Prisma Client 재생성 (선택): 스키마 변경 후 타입 업데이트
+//    npm run db:generate
+//    대부분의 명령어가 자동 실행하므로 수동 실행 불필요
+//
+// 4. 운영 환경 배포: 마이그레이션 파일을 운영 DB에 적용
+//    npm run db:migrate:deploy
+//
+// === 권장 흐름 ===
+// 1. schema.prisma 수정
+// 2. npm run db:migrate:dev (or npm run db:push for quick test)
+// 3. 기능 개발 후 테스트
+// 4. git commit (마이그레이션 파일과 함께)
+// 5. 운영 배포 시 npm run db:migrate:deploy
 
 generator client {
   provider = "prisma-client-js"
@@ -32,11 +57,39 @@ model News {
   author      String?
   categoryId  String?
   category    Category?  @relation(fields: [categoryId], references: [id])
+  embeddings  NewsEmbedding[]
+  llmSummary  NewsLlmSummary?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   @@index([publishedAt])
   @@index([categoryId])
+}
+
+model NewsEmbedding {
+  id        String   @id @default(uuid())
+  newsId    String
+  chunkText String
+  chunkHash String   @unique
+  model     String
+  embedding Unsupported("vector")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  news      News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
+  @@index([newsId])
+}
+
+model NewsLlmSummary {
+  id           String   @id @default(uuid())
+  newsId       String   @unique
+  summary      String
+  summaryLines String[] @default([])
+  model        String
+  contentHash  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  news         News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
 }
 
 model WeatherCache {

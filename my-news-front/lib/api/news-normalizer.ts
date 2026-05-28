@@ -8,6 +8,18 @@ type ApiNews = {
   contentHtml?: string | null;
   summary?: string | null;
   summaryLines?: string[];
+  llmSummary?: {
+    id: string;
+    newsId?: string;
+    summary: string;
+    summaryLines?: string[];
+    model?: string;
+    cached?: boolean;
+  } | null;
+  rag?: {
+    matchedChunk: string;
+    similarity: number;
+  };
   url: string;
   imageUrl?: string | null;
   urlToImage?: string | null;
@@ -107,6 +119,8 @@ export function normalizeNews(news: ApiNews): News {
     contentHtml: news.contentHtml ?? null,
     summary: normalizeSummary(news.summary, news.summaryLines),
     summaryLines: Array.isArray(news.summaryLines) ? news.summaryLines : [],
+    llmSummary: news.llmSummary ?? null,
+    rag: news.rag,
     url: news.url,
     imageUrl: normalizeImageUrl(news.imageUrl ?? news.urlToImage),
     publishedAt: news.publishedAt,
@@ -121,5 +135,13 @@ export function normalizeNewsListResponse(response: ApiNewsListResponse): NewsLi
   return {
     ...response,
     items: response.items.map(normalizeNews),
+  };
+}
+
+export function normalizeSemanticNewsResponse(response: { items: ApiNews[] }): NewsListResponse {
+  return {
+    items: response.items.map(normalizeNews),
+    nextCursor: null,
+    hasMore: false,
   };
 }
