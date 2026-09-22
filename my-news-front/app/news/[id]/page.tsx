@@ -6,6 +6,7 @@ import { NewsThumbnail } from '@/components/news/news-thumbnail';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingPage } from '@/components/ui/loading';
 import { useNewsDetail, useSummarizeNews } from '@/hooks/use-queries';
+import { formatPublishedLabel } from '@/lib/format/date';
 
 export default function NewsDetailPage() {
   const params = useParams();
@@ -30,15 +31,6 @@ export default function NewsDetailPage() {
     await navigator.clipboard.writeText(window.location.href);
     alert('링크를 복사했습니다.');
   };
-
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
 
   if (isLoading) {
     return <LoadingPage />;
@@ -87,7 +79,7 @@ export default function NewsDetailPage() {
               <span className="font-semibold text-[#4b5563]">{news.source}</span>
               <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
               <Clock className="h-4 w-4" />
-              <span>{formatDate(news.publishedAt)}</span>
+              <span>{formatPublishedLabel(news.publishedAt, { withYear: true })}</span>
             </div>
 
             <div className="flex items-center gap-2">

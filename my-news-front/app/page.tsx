@@ -8,10 +8,14 @@ import { EmptyState } from '@/components/ui/empty';
 import { ErrorMessage } from '@/components/ui/error';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { NewsThumbnail } from '@/components/news/news-thumbnail';
+import { useMounted } from '@/hooks/use-mounted';
 import { useInfiniteNews } from '@/hooks/use-queries';
+import { formatPublishedLabel, formatRelativeTime, formatShortDateLabel } from '@/lib/format/date';
+import { resolveHomeTab, type HomeTab } from '@/lib/navigation/home-tabs';
 import {
   getAnonymousProfile,
   PROFILE_UPDATED_EVENT,
+  type AnonymousProfile,
 } from '@/lib/personalization/anonymous-profile';
 import {
   rankPersonalizedNews,
@@ -20,8 +24,6 @@ import {
 import { shouldAutoFetchNextPersonalizedPage } from '@/lib/personalization/personalized-pagination';
 import { trackNewsInterest } from '@/lib/personalization/signal-tracker';
 import type { News } from '@/types';
-
-type HomeTab = 'weather' | 'headline' | 'trending' | 'personalized';
 
 interface TrendingKeyword {
   keyword: string;
@@ -35,29 +37,6 @@ interface RankedTrendingNews extends News {
 }
 
 const PERSONALIZED_PAGE_SIZE = 8;
-
-function formatRelativeTime(dateString: string) {
-  const publishedAt = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - publishedAt.getTime();
-  const minutes = Math.max(1, Math.floor(diff / (1000 * 60)));
-
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일 전`;
-  return publishedAt.toLocaleDateString('ko-KR');
-}
-
-function formatPublishedLabel(dateString: string) {
-  return new Date(dateString).toLocaleString('ko-KR', {
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function HomeLoading() {
   return (
@@ -131,6 +110,7 @@ function EditorialList({
   limit?: number;
 }) {
   const visibleArticles = typeof limit === 'number' ? articles.slice(0, limit) : articles;
+  const mounted = useMounted();
 
   return (
     <div className="editorial-list">
@@ -181,7 +161,9 @@ function EditorialList({
                 <span className="truncate">{article.source}</span>
                 <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
                 <Clock className="h-3.5 w-3.5" />
-                <span>{formatRelativeTime(article.publishedAt)}</span>
+                <span>
+                  {mounted ? formatRelativeTime(article.publishedAt) : formatShortDateLabel(article.publishedAt)}
+                </span>
               </div>
             </div>
 
@@ -274,13 +256,13 @@ function LeadStoryHero({
 }
 
 function BriefStrip({
-  headlineCount,
+  totalArticleCount,
   trendingKeywords,
-  personalizedArticles,
+  personalizedTotalCount,
 }: {
-  headlineCount: number;
+  totalArticleCount: number;
   trendingKeywords: TrendingKeyword[];
-  personalizedArticles: PersonalizedNewsItem[];
+  personalizedTotalCount: number;
 }) {
   return (
     <section className="home-brief-grid reveal-up" style={{ animationDelay: '120ms' }}>
@@ -288,9 +270,9 @@ function BriefStrip({
         <p className="home-eyebrow">Headlines</p>
         <div className="mt-5 flex items-center gap-3">
           <Newspaper className="h-5 w-5 text-[var(--primary-strong)]" />
-          <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{headlineCount}</p>
+          <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{totalArticleCount}</p>
         </div>
-        <p className="mt-3 text-sm leading-6 text-[#5b6573]">지금 확인할 주요 기사 묶음을 한 화면에서 바로 훑을 수 있습니다.</p>
+        <p className="mt-3 text-sm leading-6 text-[#5b6573]">지금까지 모인 전체 기사 건수입니다.</p>
       </article>
 
       <article className="home-brief-card">
@@ -312,7 +294,7 @@ function BriefStrip({
         <p className="home-eyebrow">For You</p>
         <div className="mt-5 flex items-center gap-3">
           <Sparkles className="h-5 w-5 text-[#1b64da]" />
-          <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{personalizedArticles.length}</p>
+          <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{personalizedTotalCount}</p>
         </div>
         <p className="mt-3 text-sm leading-6 text-[#5b6573]">
           최근 본 기사와 관심 카테고리를 반영해 익명 개인화 순서로 다시 정렬합니다.
@@ -328,21 +310,25 @@ function OverviewTab({
   trendingKeywords,
   trendingTopArticles,
   personalizedArticles,
+  personalizedTotalCount,
+  profile,
 }: {
   articles: News[];
   headlineArticles: News[];
   trendingKeywords: TrendingKeyword[];
   trendingTopArticles: RankedTrendingNews[];
   personalizedArticles: PersonalizedNewsItem[];
+  personalizedTotalCount: number;
+  profile: AnonymousProfile | null;
 }) {
   const heroArticle = headlineArticles[0] ?? articles[0];
   const interestKeywords = useMemo(
     () =>
-      Object.entries(getAnonymousProfile()?.keywordScores ?? {})
+      Object.entries(profile?.keywordScores ?? {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([keyword]) => `#${keyword}`),
-    [],
+    [profile],
   );
 
   if (!heroArticle) {
@@ -354,9 +340,9 @@ function OverviewTab({
       <LeadStoryHero article={heroArticle} trendingKeywords={trendingKeywords} interestKeywords={interestKeywords} />
 
       <BriefStrip
-        headlineCount={headlineArticles.length}
+        totalArticleCount={articles.length}
         trendingKeywords={trendingKeywords}
-        personalizedArticles={personalizedArticles}
+        personalizedTotalCount={personalizedTotalCount}
       />
 
       <section className="home-section-surface reveal-up" style={{ animationDelay: '180ms' }}>
@@ -663,7 +649,7 @@ function getProfileSnapshot() {
 
 function HomeContent() {
   const searchParams = useSearchParams();
-  const selectedTab = (searchParams.get('tab') as HomeTab) || 'weather';
+  const selectedTab: HomeTab = resolveHomeTab(searchParams.get('tab'));
   const [personalizedVisibleCount, setPersonalizedVisibleCount] = useState(PERSONALIZED_PAGE_SIZE);
   const [isLoadingMorePersonalized, setIsLoadingMorePersonalized] = useState(false);
   const [orderedPersonalizedArticles, setOrderedPersonalizedArticles] = useState<PersonalizedNewsItem[]>([]);
@@ -853,6 +839,8 @@ function HomeContent() {
           trendingKeywords={trendingKeywords}
           trendingTopArticles={trendingTopArticles}
           personalizedArticles={visiblePersonalizedArticles}
+          personalizedTotalCount={orderedPersonalizedArticles.length}
+          profile={profile}
         />
       ) : null}
       {selectedTab === 'headline' ? <HeadlineSection articles={headlineArticles} /> : null}

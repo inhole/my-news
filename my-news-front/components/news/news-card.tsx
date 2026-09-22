@@ -3,27 +3,17 @@
 import Link from 'next/link';
 import { Clock, ExternalLink } from 'lucide-react';
 import { NewsThumbnail } from '@/components/news/news-thumbnail';
+import { useMounted } from '@/hooks/use-mounted';
+import { formatRelativeTime, formatShortDateLabel } from '@/lib/format/date';
 import { News } from '@/types';
 
 interface NewsCardProps {
   news: News;
 }
 
-function formatRelativeTime(dateString: string) {
-  const publishedAt = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - publishedAt.getTime();
-  const minutes = Math.max(1, Math.floor(diff / (1000 * 60)));
-
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일 전`;
-  return publishedAt.toLocaleDateString('ko-KR');
-}
-
 export function NewsCard({ news }: NewsCardProps) {
+  const mounted = useMounted();
+
   return (
     <Link href={`/news/${news.id}`} className="block">
       <article className="news-item-shell toss-card news-item-row relative flex overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
@@ -69,7 +59,7 @@ export function NewsCard({ news }: NewsCardProps) {
             <span className="font-medium">{news.source}</span>
             <span className="h-1 w-1 rounded-full bg-[#d1d6db]" />
             <Clock className="h-3.5 w-3.5" />
-            <span>{formatRelativeTime(news.publishedAt)}</span>
+            <span>{mounted ? formatRelativeTime(news.publishedAt) : formatShortDateLabel(news.publishedAt)}</span>
           </div>
         </div>
       </article>
