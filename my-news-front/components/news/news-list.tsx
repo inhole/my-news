@@ -135,7 +135,7 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
         <EmptyState
           title={search ? '검색 결과가 없습니다' : '뉴스가 없습니다'}
           message={search ? '다른 검색어로 다시 시도해 보세요.' : '아직 등록된 뉴스가 없습니다.'}
-          icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+          icon={<Newspaper className="mb-4 h-12 w-12 text-[var(--muted)]" />}
         />
       </>
     );
@@ -157,7 +157,7 @@ export function NewsList({ category, search, searchMode = 'keyword' }: NewsListP
       </div>
 
       {(!keywordQuery.hasNextPage || isSemanticMode) && allNews.length > 0 && (
-        <p className="py-2 text-center text-xs text-[#9ca3af]">모든 뉴스를 확인했습니다</p>
+        <p className="py-2 text-center text-xs text-[var(--muted)]">모든 뉴스를 확인했습니다</p>
       )}
     </div>
   );
@@ -189,18 +189,18 @@ function SearchBar({
       onSubmit={handleSubmit}
       className="mb-3 flex items-center gap-2 rounded-[8px] border border-[var(--line)] bg-white px-3 py-2"
     >
-      <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" />
+      <Search className="h-4 w-4 shrink-0 text-[var(--muted)]" />
       <input
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="뉴스 검색"
-        className="h-9 min-w-0 flex-1 bg-transparent text-sm font-medium text-[#111827] outline-none placeholder:text-[#9ca3af]"
+        className="h-9 min-w-0 flex-1 bg-transparent text-sm font-medium text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
       />
       {value ? (
         <button
           type="button"
           onClick={handleClear}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-[#6b7280] hover:bg-[var(--surface-soft)]"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-secondary)] hover:bg-[var(--surface-soft)]"
           aria-label="검색어 지우기"
           title="검색어 지우기"
         >
@@ -227,15 +227,15 @@ function SearchModeSwitch({
   return (
     <div className="mb-3 flex items-center justify-between gap-3 rounded-[8px] border border-[var(--line)] bg-white px-3 py-2">
       <div>
-        <p className="text-sm font-semibold text-[#111827]">검색 방식</p>
-        <p className="text-xs text-[#6b7280]">의미 검색은 RAG 벡터 색인을 사용합니다.</p>
+        <p className="text-sm font-semibold text-[var(--text)]">검색 방식</p>
+        <p className="text-xs text-[var(--text-secondary)]">의미 검색은 RAG 벡터 색인을 사용합니다.</p>
       </div>
       <div className="flex shrink-0 rounded-[8px] bg-[var(--surface-soft)] p-1">
         <button
           type="button"
           onClick={() => onChange('keyword')}
           className={`h-8 rounded-[6px] px-3 text-sm font-semibold ${
-            selected === 'keyword' ? 'bg-white text-[var(--primary-strong)] shadow-sm' : 'text-[#6b7280]'
+            selected === 'keyword' ? 'bg-white text-[var(--primary-strong)] shadow-sm' : 'text-[var(--text-secondary)]'
           }`}
         >
           키워드
@@ -244,7 +244,7 @@ function SearchModeSwitch({
           type="button"
           onClick={() => onChange('semantic')}
           className={`h-8 rounded-[6px] px-3 text-sm font-semibold ${
-            selected === 'semantic' ? 'bg-white text-[var(--primary-strong)] shadow-sm' : 'text-[#6b7280]'
+            selected === 'semantic' ? 'bg-white text-[var(--primary-strong)] shadow-sm' : 'text-[var(--text-secondary)]'
           }`}
         >
           의미

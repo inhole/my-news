@@ -45,10 +45,10 @@ function HomeLoading() {
       <div className="home-brief-grid">
         {[...Array(3)].map((_, index) => (
           <div key={index} className="home-brief-card animate-pulse">
-            <div className="h-3 w-16 rounded-full bg-[#dce8f9]" />
-            <div className="mt-4 h-6 w-24 rounded-full bg-[#eaf1fb]" />
-            <div className="mt-3 h-4 w-full rounded-full bg-[#edf2f7]" />
-            <div className="mt-2 h-4 w-3/4 rounded-full bg-[#edf2f7]" />
+            <div className="h-3 w-16 rounded-full bg-[var(--primary-weak)]" />
+            <div className="mt-4 h-6 w-24 rounded-full bg-[var(--primary-weak)]" />
+            <div className="mt-3 h-4 w-full rounded-full bg-[var(--surface-strong)]" />
+            <div className="mt-2 h-4 w-3/4 rounded-full bg-[var(--surface-strong)]" />
           </div>
         ))}
       </div>
@@ -56,11 +56,11 @@ function HomeLoading() {
         {[...Array(4)].map((_, index) => (
           <div key={index} className={`editorial-list-row ${index < 3 ? 'border-b border-[var(--line)]' : ''}`}>
             <div className="min-w-0 flex-1">
-              <div className="h-3 w-20 rounded-full bg-[#dce8f9]" />
-              <div className="mt-3 h-5 w-full rounded-full bg-[#edf2f7]" />
-              <div className="mt-2 h-5 w-4/5 rounded-full bg-[#edf2f7]" />
+              <div className="h-3 w-20 rounded-full bg-[var(--primary-weak)]" />
+              <div className="mt-3 h-5 w-full rounded-full bg-[var(--surface-strong)]" />
+              <div className="mt-2 h-5 w-4/5 rounded-full bg-[var(--surface-strong)]" />
             </div>
-            <div className="h-24 w-24 rounded-[24px] bg-[#edf2f7]" />
+            <div className="h-24 w-24 rounded-[24px] bg-[var(--surface-strong)]" />
           </div>
         ))}
       </div>
@@ -145,7 +145,7 @@ function EditorialList({
 
               {article.description ? (
                 <p
-                  className={`editorial-summary mt-3 text-sm text-[#5b6573] ${
+                  className={`editorial-summary mt-3 text-sm text-[var(--text-secondary)] ${
                     personalized ? 'editorial-summary-personalized' : ''
                   }`}
                 >
@@ -154,12 +154,12 @@ function EditorialList({
               ) : null}
 
               <div
-                className={`editorial-meta mt-4 flex min-w-0 items-center gap-2 text-xs text-[#6b7280] ${
+                className={`editorial-meta mt-4 flex min-w-0 items-center gap-2 text-xs text-[var(--text-secondary)] ${
                   personalized ? 'editorial-meta-personalized' : ''
                 }`}
               >
                 <span className="truncate">{article.source}</span>
-                <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
+                <span className="h-1 w-1 rounded-full bg-[var(--line-strong)]" />
                 <Clock className="h-3.5 w-3.5" />
                 <span>
                   {mounted ? formatRelativeTime(article.publishedAt) : formatShortDateLabel(article.publishedAt)}
@@ -272,7 +272,7 @@ function BriefStrip({
           <Newspaper className="h-5 w-5 text-[var(--primary-strong)]" />
           <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{totalArticleCount}</p>
         </div>
-        <p className="mt-3 text-sm leading-6 text-[#5b6573]">지금까지 모인 전체 기사 건수입니다.</p>
+        <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">지금까지 모인 전체 기사 건수입니다.</p>
       </article>
 
       <article className="home-brief-card">
@@ -283,7 +283,7 @@ function BriefStrip({
             {trendingKeywords.length > 0 ? `${trendingKeywords[0].count}x` : '-'}
           </p>
         </div>
-        <p className="mt-3 text-sm leading-6 text-[#5b6573]">
+        <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
           {trendingKeywords.length > 0
             ? `가장 많이 반복된 키워드는 ${trendingKeywords[0].keyword}입니다.`
             : '충분한 기사 수집 후 실시간 이슈를 정리합니다.'}
@@ -293,10 +293,10 @@ function BriefStrip({
       <article className="home-brief-card">
         <p className="home-eyebrow">For You</p>
         <div className="mt-5 flex items-center gap-3">
-          <Sparkles className="h-5 w-5 text-[#1b64da]" />
+          <Sparkles className="h-5 w-5 text-[var(--primary-strong)]" />
           <p className="text-[28px] font-bold tracking-[-0.04em] text-[var(--text)]">{personalizedTotalCount}</p>
         </div>
-        <p className="mt-3 text-sm leading-6 text-[#5b6573]">
+        <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
           최근 본 기사와 관심 카테고리를 반영해 익명 개인화 순서로 다시 정렬합니다.
         </p>
       </article>
@@ -392,7 +392,7 @@ function HeadlineSection({ articles }: { articles: News[] }) {
       <EmptyState
         title="헤드라인이 아직 없습니다"
         message="기사 수집이 완료되면 주요 기사 목록을 먼저 보여드립니다."
-        icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+        icon={<Newspaper className="mb-4 h-12 w-12 text-[var(--muted)]" />}
       />
     );
   }
@@ -419,7 +419,7 @@ function TrendingTopSection({ articles }: { articles: RankedTrendingNews[] }) {
       <EmptyState
         title="집계할 트렌드가 아직 없습니다"
         message="기사 제목과 설명이 더 쌓이면 지금 많이 언급되는 이슈를 자동으로 정리합니다."
-        icon={<Flame className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+        icon={<Flame className="mb-4 h-12 w-12 text-[var(--muted)]" />}
       />
     );
   }
@@ -472,7 +472,7 @@ function PersonalizedSection({
       return (
         <div className="toss-card flex flex-col items-center justify-center px-6 py-14 text-center">
           <LoadingSpinner size="small" />
-          <p className="mt-4 text-sm leading-6 text-[#6b7280]">
+          <p className="mt-4 text-sm leading-6 text-[var(--text-secondary)]">
             관심 카테고리에 맞는 기사를 더 찾는 중입니다.
           </p>
         </div>
@@ -484,7 +484,7 @@ function PersonalizedSection({
         <EmptyState
           title="선호 카테고리와 일치하는 기사를 찾지 못했습니다"
           message="현재 수집된 기사 중에는 선택한 카테고리와 맞는 기사가 없습니다. 카테고리 설정을 바꾸거나 잠시 후 다시 확인해 주세요."
-          icon={<Sparkles className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+          icon={<Sparkles className="mb-4 h-12 w-12 text-[var(--muted)]" />}
         />
       );
     }
@@ -493,7 +493,7 @@ function PersonalizedSection({
       <EmptyState
         title="개인화할 반응이 아직 부족합니다"
         message="기사를 읽기 시작하면 관심 카테고리와 키워드를 반영해 추천 정확도를 높입니다."
-        icon={<Sparkles className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+        icon={<Sparkles className="mb-4 h-12 w-12 text-[var(--muted)]" />}
       />
     );
   }
@@ -513,7 +513,7 @@ function PersonalizedSection({
       <div ref={sentinelRef} className="flex h-12 flex-col items-center justify-center gap-2 pt-4 text-center">
         {loadMoreError ? (
           <>
-            <p className="text-sm text-[#6b7280]">
+            <p className="text-sm text-[var(--text-secondary)]">
               {loadMoreError.message || '기사를 더 불러오지 못했습니다.'}
             </p>
             <button
@@ -825,7 +825,7 @@ function HomeContent() {
       <EmptyState
         title="표시할 뉴스가 없습니다"
         message="뉴스 수집이 완료되면 오늘의 흐름과 맞춤 추천을 여기서 확인할 수 있습니다."
-        icon={<Newspaper className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+        icon={<Newspaper className="mb-4 h-12 w-12 text-[var(--muted)]" />}
       />
     );
   }

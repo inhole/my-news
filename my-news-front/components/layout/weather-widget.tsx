@@ -48,14 +48,14 @@ function getWeatherDescription(code: number): string {
 }
 
 function getWeatherIcon(code: number, className = 'h-6 w-6') {
-  if (code === 0 || code === 1) return <Sun className={`${className} text-[#f59e0b]`} />;
-  if (code >= 71 && code <= 75) return <CloudSnow className={`${className} text-[#93c5fd]`} />;
-  if (code >= 51 && code <= 55) return <CloudDrizzle className={`${className} text-[#60a5fa]`} />;
+  if (code === 0 || code === 1) return <Sun className={`${className} text-[var(--weather-sun)]`} />;
+  if (code >= 71 && code <= 75) return <CloudSnow className={`${className} text-[var(--weather-snow)]`} />;
+  if (code >= 51 && code <= 55) return <CloudDrizzle className={`${className} text-[var(--weather-drizzle)]`} />;
   if ((code >= 61 && code <= 82) || code >= 95) {
-    return <CloudRain className={`${className} text-[#3b82f6]`} />;
+    return <CloudRain className={`${className} text-[var(--weather-rain)]`} />;
   }
-  if (code >= 2 && code <= 3) return <Cloud className={`${className} text-[#9ca3af]`} />;
-  return <Wind className={`${className} text-[#94a3b8]`} />;
+  if (code >= 2 && code <= 3) return <Cloud className={`${className} text-[var(--muted)]`} />;
+  return <Wind className={`${className} text-[var(--weather-wind)]`} />;
 }
 
 function formatHourLabel(time: string): string {
@@ -173,10 +173,10 @@ export function WeatherWidget() {
   if (isLoading || !weather) {
     return (
       <section className="toss-card section-pad h-[360px]">
-        <p className="text-sm font-semibold text-[#6b7280]">현재 날씨</p>
+        <p className="text-sm font-semibold text-[var(--text-secondary)]">현재 날씨</p>
         <div className="mt-5 flex items-center gap-3">
           <Cloud className="h-7 w-7 animate-pulse text-[var(--primary)]" />
-          <p className="text-sm text-[#6b7280]">날씨 정보를 불러오는 중입니다.</p>
+          <p className="text-sm text-[var(--text-secondary)]">날씨 정보를 불러오는 중입니다.</p>
         </div>
       </section>
     );
@@ -242,48 +242,48 @@ export function WeatherWidget() {
       <section className="toss-card section-pad-sm border border-[#d9e6f7] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5fd_100%)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8b95a1]">Today Details</p>
-            <h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-[#111827]">생활 지표</h3>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Today Details</p>
+            <h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-[var(--text)]">생활 지표</h3>
           </div>
-          <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
+          <ChevronRight className="h-4 w-4 text-[var(--muted)]" />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-[22px] bg-white/78 px-4 py-4">
-            <div className="flex items-center gap-2 text-[#6b7280]">
-              <Sunrise className="h-4 w-4 text-[#f59e0b]" />
+            <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+              <Sunrise className="h-4 w-4 text-[var(--weather-sun)]" />
               <span className="text-sm font-medium">일출</span>
             </div>
-            <p className="mt-2 text-xl font-bold text-[#111827]">{today ? formatTimeLabel(today.sunrise) : '-'}</p>
+            <p className="mt-2 text-xl font-bold text-[var(--text)]">{today ? formatTimeLabel(today.sunrise) : '-'}</p>
           </div>
           <div className="rounded-[22px] bg-white/78 px-4 py-4">
-            <div className="flex items-center gap-2 text-[#6b7280]">
-              <Sunset className="h-4 w-4 text-[#fb7185]" />
+            <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+              <Sunset className="h-4 w-4 text-[var(--weather-sunset)]" />
               <span className="text-sm font-medium">일몰</span>
             </div>
-            <p className="mt-2 text-xl font-bold text-[#111827]">{today ? formatTimeLabel(today.sunset) : '-'}</p>
+            <p className="mt-2 text-xl font-bold text-[var(--text)]">{today ? formatTimeLabel(today.sunset) : '-'}</p>
           </div>
           <div className="rounded-[22px] bg-white/78 px-4 py-4">
-            <div className="flex items-center gap-2 text-[#6b7280]">
-              <Droplets className="h-4 w-4 text-[#3b82f6]" />
+            <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+              <Droplets className="h-4 w-4 text-[var(--weather-rain)]" />
               <span className="text-sm font-medium">PM10</span>
             </div>
-            <p className="mt-2 text-xl font-bold text-[#111827]">{weather.airQuality.pm10.toFixed(0)}</p>
-            <p className="mt-1 text-xs font-medium text-[#4b5563]">{primaryDustStatus}</p>
+            <p className="mt-2 text-xl font-bold text-[var(--text)]">{weather.airQuality.pm10.toFixed(0)}</p>
+            <p className="mt-1 text-xs font-medium text-[var(--text-body)]">{primaryDustStatus}</p>
           </div>
           <div className="rounded-[22px] bg-white/78 px-4 py-4">
-            <div className="flex items-center gap-2 text-[#6b7280]">
-              <Wind className="h-4 w-4 text-[#64748b]" />
+            <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+              <Wind className="h-4 w-4 text-[var(--weather-wind)]" />
               <span className="text-sm font-medium">PM2.5</span>
             </div>
-            <p className="mt-2 text-xl font-bold text-[#111827]">{weather.airQuality.pm2_5.toFixed(0)}</p>
-            <p className="mt-1 text-xs font-medium text-[#4b5563]">초미세먼지</p>
+            <p className="mt-2 text-xl font-bold text-[var(--text)]">{weather.airQuality.pm2_5.toFixed(0)}</p>
+            <p className="mt-1 text-xs font-medium text-[var(--text-body)]">초미세먼지</p>
           </div>
         </div>
       </section>
 
       <section className="toss-card section-pad-sm border border-[#d9e6f7] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5fd_100%)]">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8b95a1]">Hourly Forecast</p>
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Hourly Forecast</p>
         <div className="scrollbar-hide mt-4 flex gap-2 overflow-x-auto pb-1">
           {weather.hourly.map((hour) => {
             const active = isNowHour(hour.time);
@@ -297,11 +297,11 @@ export function WeatherWidget() {
                     : 'border-[#dfeaf7] bg-white/82'
                 }`}
               >
-                <p className={`text-[11px] font-semibold ${active ? 'text-[#2563eb]' : 'text-[#6b7280]'}`}>
+                <p className={`text-[11px] font-semibold ${active ? 'text-[#2563eb]' : 'text-[var(--text-secondary)]'}`}>
                   {active ? '지금' : formatHourLabel(hour.time)}
                 </p>
                 <div className="mt-2 flex justify-center">{getWeatherIcon(hour.weatherCode, 'h-5 w-5')}</div>
-                <p className="mt-2 text-base font-bold text-[#111827]">{Math.round(hour.temperature)}°</p>
+                <p className="mt-2 text-base font-bold text-[var(--text)]">{Math.round(hour.temperature)}°</p>
               </div>
             );
           })}
@@ -311,12 +311,12 @@ export function WeatherWidget() {
       <section className="toss-card section-pad-sm border border-[#d9e6f7] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5fd_100%)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8b95a1]">Weekly Forecast</p>
-            <h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-[#111827]">주간 날씨</h3>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Weekly Forecast</p>
+            <h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-[var(--text)]">주간 날씨</h3>
           </div>
         </div>
 
-        <div className="mt-3 divide-y divide-[#eef2f6]">
+        <div className="mt-3 divide-y divide-[var(--line)]">
           {weather.daily.slice(0, 7).map((day, index) => {
             const label = formatDayLabel(day.date, index);
 
@@ -324,18 +324,18 @@ export function WeatherWidget() {
               <div key={day.date} className="flex items-center justify-between gap-3 py-3 first:pt-1 last:pb-1">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="w-[78px] shrink-0">
-                    <p className="text-[15px] font-bold text-[#111827]">{label.primary}</p>
-                    <p className="mt-1 text-xs text-[#8b95a1]">{label.secondary}</p>
+                    <p className="text-[15px] font-bold text-[var(--text)]">{label.primary}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">{label.secondary}</p>
                   </div>
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f4f8fe]">
                     {getWeatherIcon(day.weatherCode, 'h-5 w-5')}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-[#374151]">{getWeatherDescription(day.weatherCode)}</p>
-                    <p className="mt-1 text-xs text-[#8b95a1]">강수량 {day.precipitation.toFixed(1)}mm</p>
+                    <p className="text-sm font-medium text-[var(--text-body)]">{getWeatherDescription(day.weatherCode)}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">강수량 {day.precipitation.toFixed(1)}mm</p>
                   </div>
                 </div>
-                <p className="shrink-0 text-[15px] font-bold tracking-[-0.02em] text-[#111827]">
+                <p className="shrink-0 text-[15px] font-bold tracking-[-0.02em] text-[var(--text)]">
                   {Math.round(day.tempMax)}° / {Math.round(day.tempMin)}°
                 </p>
               </div>

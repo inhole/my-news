@@ -42,14 +42,14 @@ function getWeatherDescription(code: number): string {
 }
 
 function getWeatherIcon(code: number, className = 'h-4 w-4') {
-  if (code === 0 || code === 1) return <Sun className={`${className} text-[#f59e0b]`} />;
-  if (code >= 71 && code <= 75) return <CloudSnow className={`${className} text-[#93c5fd]`} />;
-  if (code >= 51 && code <= 55) return <CloudDrizzle className={`${className} text-[#60a5fa]`} />;
+  if (code === 0 || code === 1) return <Sun className={`${className} text-[var(--weather-sun)]`} />;
+  if (code >= 71 && code <= 75) return <CloudSnow className={`${className} text-[var(--weather-snow)]`} />;
+  if (code >= 51 && code <= 55) return <CloudDrizzle className={`${className} text-[var(--weather-drizzle)]`} />;
   if ((code >= 61 && code <= 82) || code >= 95) {
-    return <CloudRain className={`${className} text-[#3b82f6]`} />;
+    return <CloudRain className={`${className} text-[var(--weather-rain)]`} />;
   }
-  if (code >= 2 && code <= 3) return <Cloud className={`${className} text-[#9ca3af]`} />;
-  return <Wind className={`${className} text-[#94a3b8]`} />;
+  if (code >= 2 && code <= 3) return <Cloud className={`${className} text-[var(--muted)]`} />;
+  return <Wind className={`${className} text-[var(--weather-wind)]`} />;
 }
 
 function TopNavWeatherSummary() {
