@@ -4,6 +4,10 @@ import axios from 'axios';
 import type { PrismaService } from '../prisma/prisma.service';
 import { NewsService } from './news.service';
 import type { NewsRagService } from './news-rag.service';
+import { GeekNewsSource } from './sources/geeknews.source';
+import { HackerNewsSource } from './sources/hacker-news.source';
+import { NaverNewsSource } from './sources/naver-news.source';
+import { NewsSourcesRegistry } from './sources/news-sources.registry';
 
 jest.mock('axios');
 
@@ -77,10 +81,17 @@ describe('NewsService', () => {
       indexNews: jest.fn().mockResolvedValue(undefined),
     };
 
+    const newsSourcesRegistry = new NewsSourcesRegistry(
+      new NaverNewsSource(configService as unknown as ConfigService),
+      new GeekNewsSource(configService as unknown as ConfigService),
+      new HackerNewsSource(configService as unknown as ConfigService),
+    );
+
     service = new NewsService(
       prisma as unknown as PrismaService,
       configService as unknown as ConfigService,
       newsRagService as unknown as NewsRagService,
+      newsSourcesRegistry,
     );
   });
 

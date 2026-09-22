@@ -7,28 +7,10 @@ import type { AnyNode, Element } from 'domhandler';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 import { NewsRagService } from './news-rag.service';
+import { extractSourceName } from './sources/extract-source-name.util';
+import { NewsSourcesRegistry } from './sources/news-sources.registry';
 
-type NaverSort = 'sim' | 'date';
 type CheerioNode = Cheerio<AnyNode>;
-
-interface NaverNewsApiParams {
-  query: string;
-  display: number;
-  start: number;
-  sort: NaverSort;
-}
-
-interface NaverNewsItem {
-  title?: string;
-  description?: string;
-  originallink?: string;
-  link?: string;
-  pubDate?: string;
-}
-
-interface NaverNewsApiResponse {
-  items?: NaverNewsItem[];
-}
 
 interface CrawledArticleMetadata {
   title: string | null;
@@ -70,23 +52,13 @@ const CURSOR_SEPARATOR = '|';
 @Injectable()
 export class NewsService {
   private readonly logger = new Logger(NewsService.name);
-  private readonly naverClientId: string;
-  private readonly naverClientSecret: string;
-  private readonly naverNewsApiUrl: string;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
     private newsRagService: NewsRagService,
-  ) {
-    this.naverClientId =
-      this.configService.get<string>('NAVER_CLIENT_ID') || '';
-    this.naverClientSecret =
-      this.configService.get<string>('NAVER_CLIENT_SECRET') || '';
-    this.naverNewsApiUrl =
-      this.configService.get<string>('NAVER_NEWS_API_URL') ||
-      'https://openapi.naver.com/v1/search/news.json';
-  }
+    private newsSourcesRegistry: NewsSourcesRegistry,
+  ) {}
 
   async getNews(
     cursor?: string,
@@ -223,7 +195,9 @@ export class NewsService {
   }
 
   async fetchAndCacheNews(category?: string) {
-    if (!this.naverClientId || !this.naverClientSecret) {
+    const naverSource = this.newsSourcesRegistry.get('naver');
+
+    if (!naverSource || !naverSource.isConfigured()) {
       this.logger.warn(
         'NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is not configured',
       );
@@ -236,27 +210,10 @@ export class NewsService {
       categoryDefinition?.searchQuery || `${normalizedCategory} ?쒓뎅 ?댁뒪`;
 
     try {
-      const params: NaverNewsApiParams = {
-        query: searchQuery,
-        display: 100,
-        start: 1,
-        sort: 'date',
-      };
-
-      const response = await axios.get<NaverNewsApiResponse>(
-        this.naverNewsApiUrl,
-        {
-          params,
-          headers: {
-            'X-Naver-Client-Id': this.naverClientId,
-            'X-Naver-Client-Secret': this.naverClientSecret,
-          },
-        },
-      );
-
-      const articles: NaverNewsItem[] = Array.isArray(response.data.items)
-        ? response.data.items
-        : [];
+      const articles = await naverSource.fetchArticles({
+        category: normalizedCategory,
+        searchQuery,
+      });
 
       const categoryRecord = await this.prisma.category.upsert({
         where: { slug: normalizedCategory },
@@ -276,18 +233,16 @@ export class NewsService {
       let savedCount = 0;
 
       for (const article of articles) {
-        const originalUrl = article.originallink;
-        const fallbackUrl = article.link;
-        const url = originalUrl || fallbackUrl;
+        const url = article.url;
 
         if (!url) {
           continue;
         }
 
-        const publishedAt = this.parsePublishedDate(article.pubDate);
+        const publishedAt = article.publishedAt;
         const title = this.normalizeText(article.title);
         const description = this.normalizeText(article.description);
-        const source = this.extractSourceName(url);
+        const source = article.source;
 
         const existingNews = await this.prisma.news.findUnique({
           where: { url },
@@ -299,12 +254,17 @@ export class NewsService {
         });
 
         const shouldEnrich =
-          !existingNews ||
-          !existingNews.urlToImage ||
-          !existingNews.content ||
-          !existingNews.contentHtml;
+          !naverSource.skipContentCrawl &&
+          (!existingNews ||
+            !existingNews.urlToImage ||
+            !existingNews.content ||
+            !existingNews.contentHtml);
+        const crawlCandidates =
+          article.metadataCrawlUrls && article.metadataCrawlUrls.length > 0
+            ? article.metadataCrawlUrls
+            : [url];
         const crawledMetadata = shouldEnrich
-          ? await this.fetchArticleMetadata(originalUrl, fallbackUrl)
+          ? await this.fetchArticleMetadata(crawlCandidates)
           : null;
 
         const resolvedTitle = this.preferReadableText(
@@ -350,7 +310,7 @@ export class NewsService {
             urlToImage: resolvedImageUrl,
             publishedAt,
             source: resolvedSource,
-            author: null,
+            author: article.author,
             categoryId: categoryRecord.id,
           },
           create: {
@@ -362,7 +322,7 @@ export class NewsService {
             urlToImage: resolvedImageUrl,
             publishedAt,
             source: resolvedSource,
-            author: null,
+            author: article.author,
             categoryId: categoryRecord.id,
           },
         });
@@ -399,20 +359,10 @@ export class NewsService {
     });
   }
 
-  private parsePublishedDate(pubDate?: string): Date {
-    if (!pubDate) {
-      return new Date();
-    }
-
-    const parsed = new Date(pubDate);
-    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-  }
-
   private async fetchArticleMetadata(
-    primaryUrl?: string,
-    fallbackUrl?: string,
+    candidateUrls: string[],
   ): Promise<CrawledArticleMetadata> {
-    const candidates = [...new Set([primaryUrl, fallbackUrl].filter(Boolean))];
+    const candidates = [...new Set(candidateUrls.filter(Boolean))];
 
     for (const candidateUrl of candidates) {
       if (!candidateUrl) {
@@ -438,6 +388,8 @@ export class NewsService {
       }
     }
 
+    const primaryUrl = candidates[0];
+
     return {
       title: null,
       description: null,
@@ -445,7 +397,7 @@ export class NewsService {
       contentHtml: null,
       contentExtracted: false,
       imageUrl: null,
-      source: primaryUrl ? this.extractSourceName(primaryUrl) : null,
+      source: primaryUrl ? extractSourceName(primaryUrl) : null,
     };
   }
 
@@ -477,7 +429,7 @@ export class NewsService {
         contentHtml: null,
         contentExtracted: false,
         imageUrl: null,
-        source: this.extractSourceName(url),
+        source: extractSourceName(url),
       };
     }
 
@@ -512,7 +464,7 @@ export class NewsService {
           'meta[property="og:site_name"]',
           'meta[name="application-name"]',
         ]) || '',
-      ) || this.extractSourceName(url);
+      ) || extractSourceName(url);
     const contentData = this.extractArticleContent($, description);
 
     return {
@@ -907,13 +859,5 @@ export class NewsService {
       '좋아요',
       '광고',
     ].some((keyword) => normalized.includes(keyword));
-  }
-
-  private extractSourceName(url: string): string {
-    try {
-      return new URL(url).hostname.replace(/^www\./, '');
-    } catch {
-      return 'Naver News';
-    }
   }
 }
