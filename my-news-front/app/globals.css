@@ -14,7 +14,18 @@
   --primary-strong: #1b64da;
   --primary-weak: #eaf3ff;
   --danger: #f04452;
+  --danger-weak: #fff1f3;
   --success: #00a86b;
+  /* 텍스트 그레이 램프: --text(강조) > --text-body(본문) > --text-secondary(보조/메타) > --muted(가장 옅음) */
+  --text-body: #4b5563;
+  --text-secondary: #6b7280;
+  /* 날씨 상태 아이콘 전용 강조색 (weather-widget.tsx, app-top-nav.tsx에서 공유) */
+  --weather-sun: #f59e0b;
+  --weather-rain: #3b82f6;
+  --weather-drizzle: #60a5fa;
+  --weather-snow: #93c5fd;
+  --weather-wind: #94a3b8;
+  --weather-sunset: #fb7185;
   --bottom-nav-height: 66px;
   --page-pad-x: 8px;
   --page-pad-y: 10px;
@@ -29,12 +40,23 @@
   --section-pad-y: 12px;
   --section-pad-sm-x: 12px;
   --section-pad-sm-y: 12px;
+  /* 큰 섹션 표면(.home-section-surface)은 통계 카드보다 넉넉한 여백을 쓴다 */
+  --surface-pad-x: clamp(1rem, 2.2vw, 1.5rem);
+  --surface-pad-y: clamp(1rem, 2.2vw, 1.5rem);
   --top-nav-pad-x: 14px;
   --top-nav-pad-y: 5px;
   --radius-card: 28px;
   --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.06);
+  --editorial-item-pad-y: 18px;
 }
 
+/*
+ * 반응형 기준선: Tailwind CSS 4 기본값과 맞춘 단일 브레이크포인트 세트를 사용한다.
+ *   - 0 ~ 479px: 좁은 폰 (아래 max-width: 479px 블록에서 추가 축소)
+ *   - 480 ~ 639px: 기본(모바일) 패딩/레이아웃
+ *   - 640px 이상 (Tailwind `sm`): 패딩이 커지는 동시에 브리프 카드 3열, 2단 레이아웃 등 멀티 컬럼으로 전환
+ * 패딩 단계와 레이아웃 단계가 같은 지점(640px)에서 함께 바뀌도록 유지한다.
+ */
 @media (min-width: 640px) {
   :root {
     --page-pad-x: 10px;
@@ -58,6 +80,44 @@
   .news-card-title {
     font-size: 18px;
     line-height: 1.5;
+  }
+
+  .home-brief-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-two-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 18px;
+  }
+
+  .editorial-thumb {
+    flex-basis: 177px;
+    width: 177px;
+    height: 177px;
+  }
+
+  .editorial-body {
+    min-height: 177px;
+    padding-block: 6px;
+  }
+
+  .editorial-body-personalized {
+    min-height: 177px;
+    padding-block: 2px;
+  }
+
+  .editorial-title {
+    -webkit-line-clamp: 3;
+  }
+
+  .editorial-summary {
+    -webkit-line-clamp: 4;
+  }
+
+  .editorial-summary-personalized {
+    -webkit-line-clamp: 6;
   }
 }
 
@@ -174,7 +234,7 @@ body {
 }
 
 .top-nav-weather-temp {
-  color: #1b64da;
+  color: var(--primary-strong);
   font-weight: 700;
 }
 
@@ -502,7 +562,7 @@ body {
 }
 
 .home-section-surface {
-  padding: clamp(1rem, 2.2vw, 1.5rem);
+  padding: var(--surface-pad-y) var(--surface-pad-x);
 }
 
 .home-section-title {
@@ -516,7 +576,7 @@ body {
 
 .home-section-description {
   margin-top: 10px;
-  color: #5b6573;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.75;
 }
@@ -546,7 +606,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 0;
+  padding: var(--editorial-item-pad-y) 0;
   border-bottom: 1px solid var(--line);
   min-width: 0;
   transition:
@@ -630,7 +690,7 @@ body {
 .editorial-summary-personalized {
   font-size: 15px;
   line-height: 1.6;
-  color: #334155;
+  color: var(--text-body);
   -webkit-line-clamp: 5;
 }
 
@@ -643,7 +703,7 @@ body {
   padding: 0 10px;
   border-radius: 999px;
   background: var(--surface-soft);
-  color: #4b5563;
+  color: var(--text-body);
   font-size: 11px;
   font-weight: 700;
 }
@@ -651,7 +711,7 @@ body {
 .editorial-rank {
   min-width: 24px;
   padding: 0 8px;
-  background: #eaf3ff;
+  background: var(--primary-weak);
   color: var(--primary-strong);
 }
 
@@ -671,48 +731,7 @@ body {
   }
 }
 
-@media (min-width: 720px) {
-  .home-brief-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .home-two-column {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 18px;
-    row-gap: 18px;
-  }
-
-  .editorial-thumb {
-    flex-basis: 177px;
-    width: 177px;
-    height: 177px;
-  }
-
-  .editorial-body {
-    min-height: 177px;
-    padding-block: 6px;
-  }
-
-  .editorial-body-personalized {
-    min-height: 177px;
-    padding-block: 2px;
-  }
-
-  .editorial-title {
-    -webkit-line-clamp: 3;
-  }
-
-  .editorial-summary {
-    -webkit-line-clamp: 4;
-  }
-
-  .editorial-summary-personalized {
-    -webkit-line-clamp: 6;
-  }
-
-}
-
-@media (max-width: 719px) {
+@media (max-width: 639px) {
   .home-hero {
     min-height: 480px;
   }
@@ -734,13 +753,14 @@ body {
 }
 
 @media (max-width: 479px) {
-  .home-section-surface {
-    padding: 14px;
+  :root {
+    --surface-pad-x: 14px;
+    --surface-pad-y: 14px;
+    --editorial-item-pad-y: 14px;
   }
 
   .editorial-list-row {
     gap: 10px;
-    padding: 14px 0;
   }
 
   .editorial-thumb {
@@ -807,14 +827,14 @@ body {
 .article-content h2,
 .article-content h3,
 .article-content h4 {
-  color: #111827;
+  color: var(--text);
   font-weight: 700;
   line-height: 1.5;
 }
 
 .article-content blockquote {
   border-left: 3px solid #dbeafe;
-  color: #4b5563;
+  color: var(--text-body);
   padding-left: 0.875rem;
 }
 

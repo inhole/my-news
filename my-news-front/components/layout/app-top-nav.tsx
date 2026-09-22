@@ -5,27 +5,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Cloud, CloudDrizzle, CloudRain, CloudSnow, MapPin, Sun, Wind } from 'lucide-react';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CategoryTabs } from '@/components/news/category-tabs';
+import { useMounted } from '@/hooks/use-mounted';
 import { useNewsDetail, useWeather } from '@/hooks/use-queries';
-
-type HomeTab = 'weather' | 'headline' | 'trending' | 'personalized';
-
-const homeTabs: Array<{ id: HomeTab; label: string }> = [
-  { id: 'weather', label: '오늘' },
-  { id: 'personalized', label: '맞춤' },
-  { id: 'headline', label: '헤드라인' },
-  { id: 'trending', label: '트렌딩' },
-];
+import { formatTodayLabel } from '@/lib/format/date';
+import { HOME_TABS, resolveHomeTab, type HomeTab } from '@/lib/navigation/home-tabs';
 
 const GANGNAM_COORDS = { lat: 37.4979, lon: 127.0276 };
 const GANGNAM_LABEL = '서울 강남';
-
-function formatTodayLabel() {
-  return new Date().toLocaleDateString('ko-KR', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'short',
-  });
-}
 
 function getWeatherDescription(code: number): string {
   const weatherCodes: Record<number, string> = {
@@ -56,14 +42,14 @@ function getWeatherDescription(code: number): string {
 }
 
 function getWeatherIcon(code: number, className = 'h-4 w-4') {
-  if (code === 0 || code === 1) return <Sun className={`${className} text-[#f59e0b]`} />;
-  if (code >= 71 && code <= 75) return <CloudSnow className={`${className} text-[#93c5fd]`} />;
-  if (code >= 51 && code <= 55) return <CloudDrizzle className={`${className} text-[#60a5fa]`} />;
+  if (code === 0 || code === 1) return <Sun className={`${className} text-[var(--weather-sun)]`} />;
+  if (code >= 71 && code <= 75) return <CloudSnow className={`${className} text-[var(--weather-snow)]`} />;
+  if (code >= 51 && code <= 55) return <CloudDrizzle className={`${className} text-[var(--weather-drizzle)]`} />;
   if ((code >= 61 && code <= 82) || code >= 95) {
-    return <CloudRain className={`${className} text-[#3b82f6]`} />;
+    return <CloudRain className={`${className} text-[var(--weather-rain)]`} />;
   }
-  if (code >= 2 && code <= 3) return <Cloud className={`${className} text-[#9ca3af]`} />;
-  return <Wind className={`${className} text-[#94a3b8]`} />;
+  if (code >= 2 && code <= 3) return <Cloud className={`${className} text-[var(--muted)]`} />;
+  return <Wind className={`${className} text-[var(--weather-wind)]`} />;
 }
 
 function TopNavWeatherSummary() {
@@ -162,8 +148,10 @@ export function AppTopNav() {
   const isHomeRoute = pathname === '/';
   const isNewsRoute = pathname === '/news' || pathname?.startsWith('/news/');
   const newsId = typeof params.id === 'string' ? params.id : '';
-  const selectedHomeTab = (searchParams.get('tab') as HomeTab) || 'weather';
+  const selectedHomeTab: HomeTab = resolveHomeTab(searchParams.get('tab'));
   const { data: detailNews } = useNewsDetail(isNewsRoute ? newsId : '');
+  const mounted = useMounted();
+  const todayLabel = mounted ? formatTodayLabel() : '';
 
   const selectedCategory = useMemo(() => {
     if (pathname === '/news') return searchParams.get('category') || '';
@@ -222,7 +210,7 @@ export function AppTopNav() {
             <div className="top-nav-head-row">
               <div>
                 <p className="top-nav-brand">My News</p>
-                <p className="top-nav-date">{formatTodayLabel()}</p>
+                <p className="top-nav-date">{todayLabel}</p>
               </div>
               {isHomeRoute ? <TopNavWeatherSummary /> : null}
             </div>
@@ -232,7 +220,7 @@ export function AppTopNav() {
             <div className="top-nav-tabs-wrap">
               <div className="top-nav-tabs-scroll">
                 <div className="top-nav-tabs">
-                  {homeTabs.map(({ id, label }) => (
+                  {HOME_TABS.map(({ id, label }) => (
                     <button
                       key={id}
                       type="button"

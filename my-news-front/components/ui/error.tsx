@@ -15,11 +15,11 @@ export function ErrorMessage({
 }: ErrorMessageProps) {
   return (
     <div className="toss-card flex flex-col items-center justify-center px-6 py-14 text-center">
-      <div className="mb-4 rounded-full bg-[#fff1f3] p-3 text-[var(--danger)]">
+      <div className="mb-4 rounded-full bg-[var(--danger-weak)] p-3 text-[var(--danger)]">
         <AlertCircle className="h-6 w-6" />
       </div>
-      <h3 className="text-lg font-bold text-[#111827]">{title}</h3>
-      <p className="mt-2 max-w-md text-sm leading-6 text-[#6b7280]">{message}</p>
+      <h3 className="text-lg font-bold text-[var(--text)]">{title}</h3>
+      <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">{message}</p>
       {onRetry && (
         <button
           type="button"

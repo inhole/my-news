@@ -3,31 +3,21 @@
 import Link from 'next/link';
 import { Clock, ExternalLink } from 'lucide-react';
 import { NewsThumbnail } from '@/components/news/news-thumbnail';
+import { useMounted } from '@/hooks/use-mounted';
+import { formatRelativeTime, formatShortDateLabel } from '@/lib/format/date';
 import { News } from '@/types';
 
 interface NewsCardProps {
   news: News;
 }
 
-function formatRelativeTime(dateString: string) {
-  const publishedAt = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - publishedAt.getTime();
-  const minutes = Math.max(1, Math.floor(diff / (1000 * 60)));
-
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일 전`;
-  return publishedAt.toLocaleDateString('ko-KR');
-}
-
 export function NewsCard({ news }: NewsCardProps) {
+  const mounted = useMounted();
+
   return (
     <Link href={`/news/${news.id}`} className="block">
       <article className="news-item-shell toss-card news-item-row relative flex overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
-        <div className="news-card-thumb relative shrink-0 overflow-hidden rounded-[22px] bg-[#e8f1ff]">
+        <div className="news-card-thumb relative shrink-0 overflow-hidden rounded-[22px] bg-[var(--primary-weak)]">
           <NewsThumbnail src={news.imageUrl} alt={news.title} fill sizes="112px" />
         </div>
 
@@ -37,7 +27,7 @@ export function NewsCard({ news }: NewsCardProps) {
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-[12px] font-semibold text-[var(--primary-strong)]">{news.category.name}</p>
                 {news.rag ? (
-                  <span className="rounded-[6px] bg-[#eef6ff] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--primary-strong)]">
+                  <span className="rounded-[6px] bg-[var(--primary-weak)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--primary-strong)]">
                     의미 {Math.round(news.rag.similarity * 100)}%
                   </span>
                 ) : null}
@@ -46,7 +36,7 @@ export function NewsCard({ news }: NewsCardProps) {
                 {news.title}
               </h3>
               {news.rag?.matchedChunk ? (
-                <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-[#6b7280]">
+                <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-[var(--text-secondary)]">
                   {news.rag.matchedChunk}
                 </p>
               ) : null}
@@ -57,7 +47,7 @@ export function NewsCard({ news }: NewsCardProps) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(event) => event.stopPropagation()}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[#4e5968] transition hover:bg-[#e9eef5]"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text-secondary)] transition hover:bg-[var(--surface-strong)]"
               aria-label="원문 보기"
               title="원문 보기"
             >
@@ -67,9 +57,9 @@ export function NewsCard({ news }: NewsCardProps) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
             <span className="font-medium">{news.source}</span>
-            <span className="h-1 w-1 rounded-full bg-[#d1d6db]" />
+            <span className="h-1 w-1 rounded-full bg-[var(--line-strong)]" />
             <Clock className="h-3.5 w-3.5" />
-            <span>{formatRelativeTime(news.publishedAt)}</span>
+            <span>{mounted ? formatRelativeTime(news.publishedAt) : formatShortDateLabel(news.publishedAt)}</span>
           </div>
         </div>
       </article>

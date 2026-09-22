@@ -46,9 +46,9 @@ function StatCard({
 }) {
   return (
     <div className="rounded-[24px] bg-[var(--surface-soft)] px-4 py-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8b95a1]">{label}</p>
-      <p className="mt-2 text-base font-bold text-[#111827]">{value}</p>
-      <p className="mt-2 text-xs leading-5 text-[#6b7280]">{description}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">{label}</p>
+      <p className="mt-2 text-base font-bold text-[var(--text)]">{value}</p>
+      <p className="mt-2 text-xs leading-5 text-[var(--text-secondary)]">{description}</p>
     </div>
   );
 }
@@ -61,7 +61,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
         visible ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
       }`}
     >
-      <div className="flex items-center gap-3 rounded-[22px] bg-[#111827] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(17,24,39,0.22)]">
+      <div className="flex items-center gap-3 rounded-[22px] bg-[var(--text)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(17,24,39,0.22)]">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/14">
           <CheckCircle2 className="h-4 w-4" />
         </div>
@@ -179,7 +179,7 @@ export default function MyPage() {
 
       <div className="mx-auto w-full max-w-[760px] space-y-4">
         <section className="toss-card overflow-hidden">
-          <div className="bg-[linear-gradient(145deg,#1b64da_0%,#3182f6_65%,#68a5ff_100%)] px-6 py-7 text-white">
+          <div className="bg-[linear-gradient(145deg,var(--primary-strong)_0%,var(--primary)_65%,#68a5ff_100%)] px-6 py-7 text-white">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-white/18">
                 <Brain className="h-8 w-8" />
@@ -211,9 +211,9 @@ export default function MyPage() {
           <article className="toss-card section-pad">
             <div className="flex items-center gap-3">
               <Layers3 className="h-5 w-5 text-[var(--primary-strong)]" />
-              <h2 className="text-lg font-bold text-[#111827]">관심 카테고리</h2>
+              <h2 className="text-lg font-bold text-[var(--text)]">관심 카테고리</h2>
             </div>
-            <p className="mt-3 text-sm leading-6 text-[#4b5563]">
+            <p className="mt-3 text-sm leading-6 text-[var(--text-body)]">
               먼저 보고 싶은 주제를 직접 고르면 맞춤 뉴스 정렬에 바로 반영됩니다.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -228,7 +228,7 @@ export default function MyPage() {
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                       selected
                         ? 'bg-[var(--primary-strong)] text-white'
-                        : 'bg-[var(--surface-soft)] text-[#4b5563] hover:bg-[#e8eef7]'
+                        : 'bg-[var(--surface-soft)] text-[var(--text-body)] hover:bg-[var(--surface-strong)]'
                     }`}
                     aria-pressed={selected}
                   >
@@ -242,9 +242,9 @@ export default function MyPage() {
           <article className="toss-card section-pad">
             <div className="flex items-center gap-3">
               <Tag className="h-5 w-5 text-[var(--primary-strong)]" />
-              <h2 className="text-lg font-bold text-[#111827]">관심 키워드</h2>
+              <h2 className="text-lg font-bold text-[var(--text)]">관심 키워드</h2>
             </div>
-            <p className="mt-3 text-sm leading-6 text-[#4b5563]">
+            <p className="mt-3 text-sm leading-6 text-[var(--text-body)]">
               직접 입력한 키워드는 행동 기록과 별도로 보관되고, 관련 기사에 가중치를 더합니다.
             </p>
             <form onSubmit={handleKeywordSubmit} className="mt-4 flex gap-2">
@@ -252,7 +252,7 @@ export default function MyPage() {
                 value={keywordInput}
                 onChange={(event) => setKeywordInput(event.target.value)}
                 placeholder="예: 반도체, 생성형 AI"
-                className="min-w-0 flex-1 rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[var(--primary-strong)]"
+                className="min-w-0 flex-1 rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary-strong)]"
               />
               <button
                 type="submit"
@@ -269,13 +269,13 @@ export default function MyPage() {
                     key={keyword}
                     type="button"
                     onClick={() => handleKeywordRemove(keyword)}
-                    className="rounded-full bg-[var(--surface-soft)] px-3 py-2 text-sm font-medium text-[#334155] transition hover:bg-[#e8eef7]"
+                    className="rounded-full bg-[var(--surface-soft)] px-3 py-2 text-sm font-medium text-[var(--text-body)] transition hover:bg-[var(--surface-strong)]"
                   >
                     #{keyword} 삭제
                   </button>
                 ))
               ) : (
-                <p className="text-sm text-[#8b95a1]">아직 설정한 키워드가 없습니다.</p>
+                <p className="text-sm text-[var(--muted)]">아직 설정한 키워드가 없습니다.</p>
               )}
             </div>
           </article>
@@ -285,11 +285,11 @@ export default function MyPage() {
           <article className="toss-card section-pad">
             <div className="flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-[var(--primary-strong)]" />
-              <h2 className="text-lg font-bold text-[#111827]">현재 반영 상태</h2>
+              <h2 className="text-lg font-bold text-[var(--text)]">현재 반영 상태</h2>
             </div>
-            <div className="mt-4 space-y-4 text-sm leading-6 text-[#4b5563]">
+            <div className="mt-4 space-y-4 text-sm leading-6 text-[var(--text-body)]">
               <div>
-                <p className="font-semibold text-[#111827]">직접 선택한 카테고리</p>
+                <p className="font-semibold text-[var(--text)]">직접 선택한 카테고리</p>
                 <p className="mt-1">
                   {selectedCategoryNames.length > 0
                     ? selectedCategoryNames.join(', ')
@@ -297,7 +297,7 @@ export default function MyPage() {
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-[#111827]">직접 입력한 키워드</p>
+                <p className="font-semibold text-[var(--text)]">직접 입력한 키워드</p>
                 <p className="mt-1">
                   {profile.preferredKeywords.length > 0
                     ? profile.preferredKeywords.map((keyword) => `#${keyword}`).join(', ')
@@ -305,7 +305,7 @@ export default function MyPage() {
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-[#111827]">최근 본 기사 수</p>
+                <p className="font-semibold text-[var(--text)]">최근 본 기사 수</p>
                 <p className="mt-1">{profile.seenNewsIds.length}건</p>
               </div>
             </div>
@@ -314,11 +314,11 @@ export default function MyPage() {
           <article className="toss-card section-pad">
             <div className="flex items-center gap-3">
               <Fingerprint className="h-5 w-5 text-[var(--primary-strong)]" />
-              <h2 className="text-lg font-bold text-[#111827]">행동 기반 선호</h2>
+              <h2 className="text-lg font-bold text-[var(--text)]">행동 기반 선호</h2>
             </div>
-            <div className="mt-4 space-y-4 text-sm leading-6 text-[#4b5563]">
+            <div className="mt-4 space-y-4 text-sm leading-6 text-[var(--text-body)]">
               <div>
-                <p className="font-semibold text-[#111827]">카테고리 반응 상위</p>
+                <p className="font-semibold text-[var(--text)]">카테고리 반응 상위</p>
                 {topBehaviorCategories.length > 0 ? (
                   <ul className="mt-1 space-y-1">
                     {topBehaviorCategories.map((item) => (
@@ -332,7 +332,7 @@ export default function MyPage() {
                 )}
               </div>
               <div>
-                <p className="font-semibold text-[#111827]">키워드 반응 상위</p>
+                <p className="font-semibold text-[var(--text)]">키워드 반응 상위</p>
                 {topBehaviorKeywords.length > 0 ? (
                   <ul className="mt-1 space-y-1">
                     {topBehaviorKeywords.map(([keyword, score]) => (
@@ -352,15 +352,15 @@ export default function MyPage() {
         <section className="toss-card section-pad">
           <div className="flex items-center gap-3">
             <Database className="h-5 w-5 text-[var(--primary-strong)]" />
-            <h2 className="text-lg font-bold text-[#111827]">개인화 관리</h2>
+            <h2 className="text-lg font-bold text-[var(--text)]">개인화 관리</h2>
           </div>
-          <p className="mt-4 text-sm leading-7 text-[#4b5563]">
+          <p className="mt-4 text-sm leading-7 text-[var(--text-body)]">
             여기서 고른 관심 카테고리와 키워드는 읽기 기록과 함께 맞춤 뉴스 정렬에 반영됩니다.
           </p>
           <button
             type="button"
             onClick={handleResetProfile}
-            className="mt-5 inline-flex items-center gap-2 rounded-[18px] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold text-[#334155] transition hover:bg-[#e8eef7]"
+            className="mt-5 inline-flex items-center gap-2 rounded-[18px] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--text-body)] transition hover:bg-[var(--surface-strong)]"
           >
             <RotateCcw className="h-4 w-4" />
             개인화 기록 초기화
