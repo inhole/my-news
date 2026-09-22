@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Brain, Home, Newspaper } from 'lucide-react';
+import { Brain, Code2, Home, Newspaper } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: '홈', icon: Home },
   { href: '/news', label: '뉴스', icon: Newspaper },
+  { href: '/dev', label: '개발', icon: Code2 },
   { href: '/mypage', label: '피드', icon: Brain },
 ];
 
@@ -16,7 +17,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line)] bg-white/92 backdrop-blur">
       <div className="mx-auto w-full max-w-[980px] px-3 pb-[env(safe-area-inset-bottom,0px)] pt-2 sm:px-6">
-        <ul className="grid h-[var(--bottom-nav-height)] w-full grid-cols-3 gap-2">
+        <ul className="grid h-[var(--bottom-nav-height)] w-full grid-cols-4 gap-1.5 sm:gap-2">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive =
               href === '/'

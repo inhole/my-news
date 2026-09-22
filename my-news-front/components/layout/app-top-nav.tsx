@@ -147,6 +147,7 @@ export function AppTopNav() {
   const tickingRef = useRef(false);
   const isHomeRoute = pathname === '/';
   const isNewsRoute = pathname === '/news' || pathname?.startsWith('/news/');
+  const isDevRoute = pathname === '/dev';
   const newsId = typeof params.id === 'string' ? params.id : '';
   const selectedHomeTab: HomeTab = resolveHomeTab(searchParams.get('tab'));
   const { data: detailNews } = useNewsDetail(isNewsRoute ? newsId : '');
@@ -213,6 +214,11 @@ export function AppTopNav() {
                 <p className="top-nav-date">{todayLabel}</p>
               </div>
               {isHomeRoute ? <TopNavWeatherSummary /> : null}
+              {isDevRoute ? (
+                <span className="hidden shrink-0 items-center rounded-full bg-[var(--primary-weak)] px-3 py-1.5 text-[12px] font-semibold text-[var(--primary-strong)] sm:inline-flex">
+                  GeekNews · Hacker News
+                </span>
+              ) : null}
             </div>
           </div>
 
