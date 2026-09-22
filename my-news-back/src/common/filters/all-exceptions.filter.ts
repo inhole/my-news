@@ -37,8 +37,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = responseBody.message ?? message;
         errors = responseBody.errors ?? null;
       }
-    } else if (exception instanceof Error) {
-      message = exception.message;
     }
 
     this.logger.error(

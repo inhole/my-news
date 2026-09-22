@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import axios from 'axios';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import type { AnyNode, Element } from 'domhandler';
@@ -34,6 +35,12 @@ interface CrawledArticleMetadata {
   description: string | null;
   content: string | null;
   contentHtml: string | null;
+  /**
+   * true only when `content`/`contentHtml` came from genuine article-body
+   * extraction (selectors, body tags). false when they are merely a
+   * repackaged `description` fallback with no real body found.
+   */
+  contentExtracted: boolean;
   imageUrl: string | null;
   source: string | null;
 }
@@ -42,6 +49,23 @@ interface ContentBlock {
   tag: string;
   text: string;
 }
+
+interface ExtractedContent {
+  text: string | null;
+  html: string | null;
+  /** true when text/html came from real DOM content, not a description-only fallback. */
+  extracted: boolean;
+}
+
+interface NewsCursor {
+  publishedAt: Date;
+  id: string;
+}
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const CURSOR_SEPARATOR = '|';
 
 @Injectable()
 export class NewsService {
@@ -70,19 +94,19 @@ export class NewsService {
     category?: string,
     search?: string,
   ) {
-    interface WhereClause {
-      id?: { lt: string };
-      categoryId?: string;
-      OR?: Array<{
-        title?: { contains: string; mode: 'insensitive' };
-        description?: { contains: string; mode: 'insensitive' };
-      }>;
-    }
-
-    const where: WhereClause = {};
+    const andConditions: Prisma.NewsWhereInput[] = [];
 
     if (cursor) {
-      where.id = { lt: cursor };
+      const decodedCursor = await this.decodeCursor(cursor);
+      andConditions.push({
+        OR: [
+          { publishedAt: { lt: decodedCursor.publishedAt } },
+          {
+            publishedAt: decodedCursor.publishedAt,
+            id: { lt: decodedCursor.id },
+          },
+        ],
+      });
     }
 
     if (category) {
@@ -90,21 +114,26 @@ export class NewsService {
         where: { slug: category },
       });
       if (cat) {
-        where.categoryId = cat.id;
+        andConditions.push({ categoryId: cat.id });
       }
     }
 
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
+
+    const where: Prisma.NewsWhereInput =
+      andConditions.length > 0 ? { AND: andConditions } : {};
 
     const news = await this.prisma.news.findMany({
       where,
       take: limit + 1,
-      orderBy: { publishedAt: 'desc' },
+      orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
       include: {
         category: true,
       },
@@ -112,13 +141,71 @@ export class NewsService {
 
     const hasMore = news.length > limit;
     const items = hasMore ? news.slice(0, -1) : news;
-    const nextCursor = hasMore ? items[items.length - 1].id : null;
+    const lastItem = items[items.length - 1];
+    const nextCursor = hasMore
+      ? this.encodeCursor(lastItem.publishedAt, lastItem.id)
+      : null;
 
     return {
       items,
       nextCursor,
       hasMore,
     };
+  }
+
+  private encodeCursor(publishedAt: Date, id: string): string {
+    return Buffer.from(
+      `${publishedAt.toISOString()}${CURSOR_SEPARATOR}${id}`,
+      'utf8',
+    ).toString('base64url');
+  }
+
+  private async decodeCursor(cursor: string): Promise<NewsCursor> {
+    const decoded = this.tryDecodeStructuredCursor(cursor);
+    if (decoded) {
+      return decoded;
+    }
+
+    if (UUID_PATTERN.test(cursor)) {
+      const legacyNews = await this.prisma.news.findUnique({
+        where: { id: cursor },
+        select: { id: true, publishedAt: true },
+      });
+
+      if (legacyNews) {
+        return { publishedAt: legacyNews.publishedAt, id: legacyNews.id };
+      }
+    }
+
+    throw new BadRequestException('Invalid cursor');
+  }
+
+  private tryDecodeStructuredCursor(cursor: string): NewsCursor | null {
+    let raw: string;
+    try {
+      raw = Buffer.from(cursor, 'base64url').toString('utf8');
+    } catch {
+      return null;
+    }
+
+    const separatorIndex = raw.lastIndexOf(CURSOR_SEPARATOR);
+    if (separatorIndex === -1) {
+      return null;
+    }
+
+    const publishedAtRaw = raw.slice(0, separatorIndex);
+    const id = raw.slice(separatorIndex + 1);
+
+    if (!ISO_DATE_PATTERN.test(publishedAtRaw) || !UUID_PATTERN.test(id)) {
+      return null;
+    }
+
+    const publishedAt = new Date(publishedAtRaw);
+    if (Number.isNaN(publishedAt.getTime())) {
+      return null;
+    }
+
+    return { publishedAt, id };
   }
 
   async getNewsById(id: string) {
@@ -228,12 +315,24 @@ export class NewsService {
           crawledMetadata?.description,
           description,
         );
+        // Only a genuinely extracted body may replace existing content; a
+        // description-only fallback must not overwrite a fuller existing body.
+        const genuineCrawledContent = crawledMetadata?.contentExtracted
+          ? crawledMetadata.content
+          : null;
+        const genuineCrawledContentHtml = crawledMetadata?.contentExtracted
+          ? crawledMetadata.contentHtml
+          : null;
+
+        const existingContentFallback =
+          existingNews?.content || resolvedDescription || description;
         const resolvedContent = this.preferReadableText(
-          crawledMetadata?.content,
-          resolvedDescription || description,
+          genuineCrawledContent,
+          existingContentFallback,
         );
         const resolvedContentHtml =
-          crawledMetadata?.contentHtml ||
+          genuineCrawledContentHtml ||
+          existingNews?.contentHtml ||
           this.buildParagraphHtml(
             resolvedContent || resolvedDescription || description,
           );
@@ -344,6 +443,7 @@ export class NewsService {
       description: null,
       content: null,
       contentHtml: null,
+      contentExtracted: false,
       imageUrl: null,
       source: primaryUrl ? this.extractSourceName(primaryUrl) : null,
     };
@@ -375,6 +475,7 @@ export class NewsService {
         description: null,
         content: null,
         contentHtml: null,
+        contentExtracted: false,
         imageUrl: null,
         source: this.extractSourceName(url),
       };
@@ -422,6 +523,7 @@ export class NewsService {
         contentData.html ||
         this.buildParagraphHtml(contentData.text || description) ||
         null,
+      contentExtracted: contentData.extracted,
       imageUrl,
       source,
     };
@@ -430,7 +532,7 @@ export class NewsService {
   private extractArticleContent(
     $: CheerioAPI,
     fallbackDescription: string,
-  ): { text: string | null; html: string | null } {
+  ): ExtractedContent {
     const selectors = [
       '[itemprop="articleBody"]',
       'article',
@@ -469,22 +571,25 @@ export class NewsService {
       return bodyContentData;
     }
 
+    // Last resort: no real article body was found in the DOM, so this is
+    // just a repackaging of the description, not genuine extraction.
     const fallbackText =
       this.preferReadableText(fallbackDescription, '') || null;
     return {
       text: fallbackText,
       html: this.buildParagraphHtml(fallbackText),
+      extracted: false,
     };
   }
 
   private extractContentFromContainer(
     container: CheerioNode,
     fallbackDescription: string,
-  ): { text: string | null; html: string | null } {
+  ): ExtractedContent {
     const containerHtml = container.html();
 
     if (!containerHtml) {
-      return { text: null, html: null };
+      return { text: null, html: null, extracted: false };
     }
 
     const containerApi = load(`<article>${containerHtml}</article>`);
@@ -514,16 +619,17 @@ export class NewsService {
       return {
         text,
         html: this.buildParagraphHtml(text),
+        extracted: true,
       };
     }
 
-    return { text: null, html: null };
+    return { text: null, html: null, extracted: false };
   }
 
   private extractContentFromElements(
     elements: CheerioNode[],
     fallbackDescription: string,
-  ): { text: string | null; html: string | null } {
+  ): ExtractedContent {
     const blocks = this.uniqueContentBlocks(
       elements
         .map((element) => this.toContentBlock(element))
@@ -531,7 +637,7 @@ export class NewsService {
     );
 
     if (blocks.length === 0) {
-      return { text: null, html: null };
+      return { text: null, html: null, extracted: false };
     }
 
     const text = this.preferReadableText(
@@ -544,6 +650,7 @@ export class NewsService {
       html: blocks
         .map((block) => this.renderContentBlock(block.tag, block.text))
         .join(''),
+      extracted: true,
     };
   }
 

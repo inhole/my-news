@@ -1,9 +1,28 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiHeader,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { RequireNewsAdminKey } from './decorators/require-news-admin-key.decorator';
 import { GetNewsDto } from './dto/get-news.dto';
 import { ReindexNewsEmbeddingsDto } from './dto/reindex-news-embeddings.dto';
 import { SemanticSearchDto } from './dto/semantic-search.dto';
 import { SummarizeNewsDto } from './dto/summarize-news.dto';
+import {
+  NEWS_ADMIN_KEY_HEADER,
+  NewsAdminGuard,
+} from './guards/news-admin.guard';
 import { NewsRagService } from './news-rag.service';
 import { NewsService } from './news.service';
 import { NewsSummaryService } from './news-summary.service';
@@ -67,26 +86,55 @@ export class NewsController {
   }
 
   @Post('embeddings/reindex')
+  @UseGuards(NewsAdminGuard)
+  @RequireNewsAdminKey()
   @ApiOperation({
     summary: '뉴스 임베딩 재색인',
-    description: '최근 뉴스 본문을 chunk로 나누고 RAG 임베딩을 생성합니다.',
+    description:
+      '최근 뉴스 본문을 chunk로 나누고 RAG 임베딩을 생성합니다. 관리자 전용 작업으로 ' +
+      `${NEWS_ADMIN_KEY_HEADER} 헤더에 NEWS_ADMIN_API_KEY 값을 담아 호출해야 합니다.`,
+  })
+  @ApiHeader({
+    name: NEWS_ADMIN_KEY_HEADER,
+    description: '관리자 API 키 (NEWS_ADMIN_API_KEY)',
+    required: true,
   })
   @ApiResponse({ status: 201, description: '뉴스 임베딩 재색인 성공' })
+  @ApiResponse({ status: 401, description: '관리자 API 키 누락/불일치' })
+  @ApiResponse({ status: 403, description: '관리자 API 키 미설정' })
   async reindexNewsEmbeddings(@Body() body: ReindexNewsEmbeddingsDto) {
     return this.newsRagService.indexRecentNews(body.limit);
   }
 
   @Post(':id/summary')
+  @UseGuards(NewsAdminGuard)
   @ApiOperation({
     summary: '뉴스 로컬 LLM 요약',
-    description: '로컬 LLM으로 뉴스 본문을 3줄 요약하고 결과를 캐시합니다.',
+    description:
+      '로컬 LLM으로 뉴스 본문을 3줄 요약하고 결과를 캐시합니다. 캐시된 요약 조회는 ' +
+      `공개이지만, refresh=true로 강제 재생성하려면 ${NEWS_ADMIN_KEY_HEADER} 헤더에 ` +
+      'NEWS_ADMIN_API_KEY 값이 필요합니다.',
   })
   @ApiParam({
     name: 'id',
     description: '뉴스 ID (UUID)',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
+  @ApiHeader({
+    name: NEWS_ADMIN_KEY_HEADER,
+    description:
+      'refresh=true일 때만 필요한 관리자 API 키 (NEWS_ADMIN_API_KEY)',
+    required: false,
+  })
   @ApiResponse({ status: 201, description: '뉴스 요약 성공' })
+  @ApiResponse({
+    status: 401,
+    description: 'refresh=true 요청에서 관리자 API 키 누락/불일치',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'refresh=true 요청인데 관리자 API 키 미설정',
+  })
   async summarizeNews(@Param('id') id: string, @Body() body: SummarizeNewsDto) {
     return this.newsSummaryService.summarizeNews(id, body.refresh);
   }
