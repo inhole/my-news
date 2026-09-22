@@ -15,6 +15,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { RequireNewsAdminKey } from './decorators/require-news-admin-key.decorator';
+import { FetchCommunityNewsDto } from './dto/fetch-community-news.dto';
+import { GetCommunityNewsDto } from './dto/get-community-news.dto';
 import { GetNewsDto } from './dto/get-news.dto';
 import { ReindexNewsEmbeddingsDto } from './dto/reindex-news-embeddings.dto';
 import { SemanticSearchDto } from './dto/semantic-search.dto';
@@ -23,6 +25,7 @@ import {
   NEWS_ADMIN_KEY_HEADER,
   NewsAdminGuard,
 } from './guards/news-admin.guard';
+import { NewsBatchService } from './news-batch.service';
 import { NewsRagService } from './news-rag.service';
 import { NewsService } from './news.service';
 import { NewsSummaryService } from './news-summary.service';
@@ -34,6 +37,7 @@ export class NewsController {
     private readonly newsService: NewsService,
     private readonly newsRagService: NewsRagService,
     private readonly newsSummaryService: NewsSummaryService,
+    private readonly newsBatchService: NewsBatchService,
   ) {}
 
   @Get()
@@ -83,6 +87,42 @@ export class NewsController {
   @ApiResponse({ status: 200, description: '뉴스 의미 검색 성공' })
   async semanticSearch(@Query() query: SemanticSearchDto) {
     return this.newsRagService.semanticSearch(query.q, query.limit);
+  }
+
+  @Get('community')
+  @ApiOperation({
+    summary: '커뮤니티/개발자 뉴스 목록 조회',
+    description:
+      'GeekNews, Hacker News 등 커뮤니티 소스의 최신 글 목록을 조회합니다. ' +
+      '일반 뉴스 목록(/news)과는 분리된 목록이며, 언론사 기사는 포함되지 않습니다.',
+  })
+  @ApiResponse({ status: 200, description: '커뮤니티 뉴스 목록 조회 성공' })
+  async getCommunityNews(@Query() query: GetCommunityNewsDto) {
+    return this.newsService.getCommunityNews(query.cursor, query.limit);
+  }
+
+  @Post('community/fetch')
+  @UseGuards(NewsAdminGuard)
+  @RequireNewsAdminKey()
+  @ApiOperation({
+    summary: '커뮤니티 뉴스 수동 수집',
+    description:
+      'GeekNews 또는 Hacker News에서 즉시 기사를 수집합니다. 외부 호출을 발생시키는 ' +
+      `관리자 전용 작업으로 ${NEWS_ADMIN_KEY_HEADER} 헤더에 NEWS_ADMIN_API_KEY 값을 담아 호출해야 합니다.`,
+  })
+  @ApiHeader({
+    name: NEWS_ADMIN_KEY_HEADER,
+    description: '관리자 API 키 (NEWS_ADMIN_API_KEY)',
+    required: true,
+  })
+  @ApiResponse({ status: 201, description: '커뮤니티 뉴스 수동 수집 성공' })
+  @ApiResponse({ status: 401, description: '관리자 API 키 누락/불일치' })
+  @ApiResponse({ status: 403, description: '관리자 API 키 미설정' })
+  async fetchCommunityNews(@Body() body: FetchCommunityNewsDto) {
+    const savedCount = await this.newsBatchService.manualFetchCommunityNews(
+      body.source,
+    );
+    return { source: body.source, savedCount };
   }
 
   @Post('embeddings/reindex')

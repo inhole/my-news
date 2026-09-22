@@ -96,6 +96,52 @@ export class NewsBatchService {
     return this.fetchAllCategoryNews();
   }
 
+  /**
+   * GeekNews/Hacker News update far less often than press articles (their
+   * front pages move over hours, not minutes), so they run every 3 hours
+   * rather than hourly, offset from the press-news cron by 30 minutes to
+   * avoid piling every source's outbound calls onto the same minute.
+   */
+  @Cron('30 */3 * * *', { timeZone: 'Asia/Seoul' })
+  async fetchGeekNews() {
+    if (!this.scheduleEnabled) {
+      this.logger.log('GeekNews fetch skipped because schedule is disabled');
+      return 0;
+    }
+
+    return this.fetchCommunitySource('geeknews');
+  }
+
+  @Cron('45 */3 * * *', { timeZone: 'Asia/Seoul' })
+  async fetchHackerNews() {
+    if (!this.scheduleEnabled) {
+      this.logger.log('Hacker News fetch skipped because schedule is disabled');
+      return 0;
+    }
+
+    return this.fetchCommunitySource('hacker-news');
+  }
+
+  async manualFetchCommunityNews(sourceId: string) {
+    this.logger.log(`Manual fetch triggered for source: ${sourceId}`);
+    return this.fetchCommunitySource(sourceId);
+  }
+
+  private async fetchCommunitySource(sourceId: string) {
+    try {
+      const count = await this.newsService.fetchAndCacheNews(
+        undefined,
+        sourceId,
+      );
+      this.logger.log(`Fetched ${count} articles from source: ${sourceId}`);
+      await this.delay(2000);
+      return count;
+    } catch (error) {
+      this.logger.error(`Failed to fetch news for source: ${sourceId}`, error);
+      return 0;
+    }
+  }
+
   shouldRunStartupFetch(): boolean {
     return this.startupFetchEnabled;
   }

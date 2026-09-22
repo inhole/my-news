@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { NewsSourceType, Prisma } from '@prisma/client';
 import axios from 'axios';
 import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -84,8 +84,11 @@ export class NewsRagService {
       return { indexed: 0, skipped: true };
     }
 
-    const news = await this.prisma.news.findUnique({
-      where: { id: newsId },
+    // Press-only, same as indexRecentNews and semanticSearch. Callers
+    // already skip community/blog content, but enforcing it here keeps the
+    // invariant local instead of depending on every caller getting it right.
+    const news = await this.prisma.news.findFirst({
+      where: { id: newsId, sourceType: NewsSourceType.PRESS },
       select: {
         id: true,
         title: true,
@@ -106,7 +109,10 @@ export class NewsRagService {
       throw new BadRequestException('RAG indexing is disabled.');
     }
 
+    // RAG search is press-only (see semanticSearch); do not index
+    // community/blog content so it can never be returned there.
     const newsItems = await this.prisma.news.findMany({
+      where: { sourceType: NewsSourceType.PRESS },
       take: limit,
       orderBy: { publishedAt: 'desc' },
       select: {
@@ -192,7 +198,7 @@ export class NewsRagService {
       FROM ranked_chunks r
       JOIN "News" n ON n.id = r."newsId"
       LEFT JOIN "Category" c ON c.id = n."categoryId"
-      WHERE r.rank = 1
+      WHERE r.rank = 1 AND n."sourceType" = 'PRESS'
       ORDER BY r.distance, n."publishedAt" DESC
     `;
     const rankedItems = this.rankSearchRows(rows, queryTokens)

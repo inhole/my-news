@@ -5,5 +5,6 @@
  */
 
 export { newsApi } from '@/lib/api/news';
+export { communityNewsApi } from '@/lib/api/community-news';
 export { weatherApi } from '@/lib/api/weather';
 export { handleApiError } from '@/lib/api/error-handler';

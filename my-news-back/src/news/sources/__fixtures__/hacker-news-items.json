@@ -1,0 +1,45 @@
+{
+  "topStoryIds": [49792730, 49795579, 49786609, 49787069],
+  "items": {
+    "49792730": {
+      "by": "volf_",
+      "descendants": 330,
+      "id": 49792730,
+      "score": 700,
+      "time": 1790021532,
+      "title": "MiMo v2.6",
+      "type": "story",
+      "url": "https://mimo.xiaomi.com/mimo-v2-6"
+    },
+    "49795579": {
+      "by": "corvad",
+      "descendants": 65,
+      "id": 49795579,
+      "score": 86,
+      "time": 1790039119,
+      "title": "Claude Status – Elevated errors for multiple models",
+      "type": "story",
+      "url": "https://status.claude.com/incidents/7g1qpkyz5gxh"
+    },
+    "49786609": {
+      "by": "semidror",
+      "descendants": 74,
+      "id": 49786609,
+      "score": 142,
+      "text": "I disabled Siri in the Settings app...",
+      "time": 1789994825,
+      "title": "Ask HN: Is it impossible to disable Siri on macOS 27?",
+      "type": "story"
+    },
+    "49787069": {
+      "by": "mmaunder",
+      "descendants": 1,
+      "id": 49787069,
+      "score": 19,
+      "text": "Just an FYI...",
+      "time": 1789997466,
+      "title": "When Claude CLI asks for feedback, responding authorizes conversation capture",
+      "type": "story"
+    }
+  }
+}

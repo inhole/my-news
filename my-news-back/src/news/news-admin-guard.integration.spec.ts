@@ -6,6 +6,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { NewsController } from './news.controller';
 import { NewsAdminGuard } from './guards/news-admin.guard';
+import { NewsBatchService } from './news-batch.service';
 import { NewsRagService } from './news-rag.service';
 import { NewsService } from './news.service';
 import { NewsSummaryService } from './news-summary.service';
@@ -37,6 +38,7 @@ describe('NewsAdminGuard integration (guard + ValidationPipe lifecycle)', () => 
           provide: NewsSummaryService,
           useValue: { summarizeNews },
         },
+        { provide: NewsBatchService, useValue: {} },
         {
           provide: ConfigService,
           useValue: {

@@ -1,34 +1,30 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { NewsSourceType, Prisma } from '@prisma/client';
 import axios from 'axios';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import type { AnyNode, Element } from 'domhandler';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 import { NewsRagService } from './news-rag.service';
+import { extractSourceName } from './sources/extract-source-name.util';
+import { NewsSourcesRegistry } from './sources/news-sources.registry';
 
-type NaverSort = 'sim' | 'date';
+/**
+ * Maps a news source adapter id to the `NewsSourceType` its articles are
+ * persisted as. Every existing read path (`getNews`, search, RAG) filters
+ * to `PRESS` only, so anything mapped here to `COMMUNITY`/`BLOG` never
+ * appears in those paths until a dedicated endpoint reads it.
+ */
+const SOURCE_TYPE_BY_ADAPTER_ID: Record<string, NewsSourceType> = {
+  naver: NewsSourceType.PRESS,
+  geeknews: NewsSourceType.COMMUNITY,
+  'hacker-news': NewsSourceType.COMMUNITY,
+};
+
+const DEFAULT_SOURCE_ID = 'naver';
+
 type CheerioNode = Cheerio<AnyNode>;
-
-interface NaverNewsApiParams {
-  query: string;
-  display: number;
-  start: number;
-  sort: NaverSort;
-}
-
-interface NaverNewsItem {
-  title?: string;
-  description?: string;
-  originallink?: string;
-  link?: string;
-  pubDate?: string;
-}
-
-interface NaverNewsApiResponse {
-  items?: NaverNewsItem[];
-}
 
 interface CrawledArticleMetadata {
   title: string | null;
@@ -70,23 +66,13 @@ const CURSOR_SEPARATOR = '|';
 @Injectable()
 export class NewsService {
   private readonly logger = new Logger(NewsService.name);
-  private readonly naverClientId: string;
-  private readonly naverClientSecret: string;
-  private readonly naverNewsApiUrl: string;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
     private newsRagService: NewsRagService,
-  ) {
-    this.naverClientId =
-      this.configService.get<string>('NAVER_CLIENT_ID') || '';
-    this.naverClientSecret =
-      this.configService.get<string>('NAVER_CLIENT_SECRET') || '';
-    this.naverNewsApiUrl =
-      this.configService.get<string>('NAVER_NEWS_API_URL') ||
-      'https://openapi.naver.com/v1/search/news.json';
-  }
+    private newsSourcesRegistry: NewsSourcesRegistry,
+  ) {}
 
   async getNews(
     cursor?: string,
@@ -94,7 +80,12 @@ export class NewsService {
     category?: string,
     search?: string,
   ) {
-    const andConditions: Prisma.NewsWhereInput[] = [];
+    // Existing screens (home feed, /news list, category tabs, search) must
+    // only ever see press articles; community/blog sources (GeekNews,
+    // Hacker News) are read through a dedicated endpoint instead.
+    const andConditions: Prisma.NewsWhereInput[] = [
+      { sourceType: NewsSourceType.PRESS },
+    ];
 
     if (cursor) {
       const decodedCursor = await this.decodeCursor(cursor);
@@ -209,8 +200,10 @@ export class NewsService {
   }
 
   async getNewsById(id: string) {
-    return this.prisma.news.findUnique({
-      where: { id },
+    // The existing news-detail screen must only ever resolve press
+    // articles; community/blog items are not readable through this path.
+    return this.prisma.news.findFirst({
+      where: { id, sourceType: NewsSourceType.PRESS },
       include: {
         category: true,
         llmSummary: true,
@@ -222,72 +215,83 @@ export class NewsService {
     return this.getNews(cursor, limit, undefined, query);
   }
 
-  async fetchAndCacheNews(category?: string) {
-    if (!this.naverClientId || !this.naverClientSecret) {
-      this.logger.warn(
-        'NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is not configured',
-      );
+  /**
+   * Fetches and caches articles from a source adapter. `sourceId` defaults
+   * to `'naver'` so every existing caller (batch cron, manual fetch,
+   * controller) keeps working unchanged with only a `category`.
+   *
+   * Naver is the only source with a category concept: it is queried per
+   * category with a `searchQuery` and its articles get `categoryId` set and
+   * `sourceType: PRESS`. GeekNews/Hacker News are single feeds with no
+   * category - their articles are saved with `categoryId: null` and
+   * `sourceType: COMMUNITY`, so they never enter a `Category`-scoped query
+   * and never appear in the existing category tabs.
+   */
+  async fetchAndCacheNews(
+    category?: string,
+    sourceId: string = DEFAULT_SOURCE_ID,
+  ) {
+    const source = this.newsSourcesRegistry.get(sourceId);
+
+    if (!source) {
+      this.logger.warn(`Unknown news source: ${sourceId}`);
       return 0;
     }
 
-    const normalizedCategory = (category || 'general').toLowerCase();
-    const categoryDefinition = NEWS_CATEGORY_MAP[normalizedCategory];
-    const searchQuery =
-      categoryDefinition?.searchQuery || `${normalizedCategory} ?쒓뎅 ?댁뒪`;
+    if (!source.isConfigured()) {
+      this.logger.warn(`News source is not configured: ${sourceId}`);
+      return 0;
+    }
+
+    const sourceType =
+      SOURCE_TYPE_BY_ADAPTER_ID[sourceId] ?? NewsSourceType.PRESS;
+    const isNaver = sourceId === 'naver';
+    const normalizedCategory = isNaver
+      ? (category || 'general').toLowerCase()
+      : undefined;
+    const categoryDefinition = normalizedCategory
+      ? NEWS_CATEGORY_MAP[normalizedCategory]
+      : undefined;
+    const searchQuery = normalizedCategory
+      ? categoryDefinition?.searchQuery || `${normalizedCategory} ?쒓뎅 ?댁뒪`
+      : undefined;
 
     try {
-      const params: NaverNewsApiParams = {
-        query: searchQuery,
-        display: 100,
-        start: 1,
-        sort: 'date',
-      };
-
-      const response = await axios.get<NaverNewsApiResponse>(
-        this.naverNewsApiUrl,
-        {
-          params,
-          headers: {
-            'X-Naver-Client-Id': this.naverClientId,
-            'X-Naver-Client-Secret': this.naverClientSecret,
-          },
-        },
-      );
-
-      const articles: NaverNewsItem[] = Array.isArray(response.data.items)
-        ? response.data.items
-        : [];
-
-      const categoryRecord = await this.prisma.category.upsert({
-        where: { slug: normalizedCategory },
-        update: categoryDefinition
-          ? {
-              name: categoryDefinition.name,
-              description: categoryDefinition.description,
-            }
-          : {},
-        create: {
-          name: categoryDefinition?.name || normalizedCategory,
-          slug: normalizedCategory,
-          description: categoryDefinition?.description,
-        },
+      const articles = await source.fetchArticles({
+        category: normalizedCategory,
+        searchQuery,
       });
+
+      const categoryRecord = normalizedCategory
+        ? await this.prisma.category.upsert({
+            where: { slug: normalizedCategory },
+            update: categoryDefinition
+              ? {
+                  name: categoryDefinition.name,
+                  description: categoryDefinition.description,
+                }
+              : {},
+            create: {
+              name: categoryDefinition?.name || normalizedCategory,
+              slug: normalizedCategory,
+              description: categoryDefinition?.description,
+            },
+          })
+        : null;
 
       let savedCount = 0;
 
       for (const article of articles) {
-        const originalUrl = article.originallink;
-        const fallbackUrl = article.link;
-        const url = originalUrl || fallbackUrl;
+        const url = article.url;
 
         if (!url) {
           continue;
         }
 
-        const publishedAt = this.parsePublishedDate(article.pubDate);
+        const publishedAt = article.publishedAt;
         const title = this.normalizeText(article.title);
         const description = this.normalizeText(article.description);
-        const source = this.extractSourceName(url);
+        const articleSourceLabel = article.source;
 
         const existingNews = await this.prisma.news.findUnique({
           where: { url },
@@ -299,12 +303,17 @@ export class NewsService {
         });
 
         const shouldEnrich =
-          !existingNews ||
-          !existingNews.urlToImage ||
-          !existingNews.content ||
-          !existingNews.contentHtml;
+          !source.skipContentCrawl &&
+          (!existingNews ||
+            !existingNews.urlToImage ||
+            !existingNews.content ||
+            !existingNews.contentHtml);
+        const crawlCandidates =
+          article.metadataCrawlUrls && article.metadataCrawlUrls.length > 0
+            ? article.metadataCrawlUrls
+            : [url];
         const crawledMetadata = shouldEnrich
-          ? await this.fetchArticleMetadata(originalUrl, fallbackUrl)
+          ? await this.fetchArticleMetadata(crawlCandidates)
           : null;
 
         const resolvedTitle = this.preferReadableText(
@@ -336,7 +345,7 @@ export class NewsService {
           this.buildParagraphHtml(
             resolvedContent || resolvedDescription || description,
           );
-        const resolvedSource = crawledMetadata?.source || source;
+        const resolvedSource = crawledMetadata?.source || articleSourceLabel;
         const resolvedImageUrl =
           crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
 
@@ -350,8 +359,11 @@ export class NewsService {
             urlToImage: resolvedImageUrl,
             publishedAt,
             source: resolvedSource,
-            author: null,
-            categoryId: categoryRecord.id,
+            author: article.author,
+            categoryId: categoryRecord?.id ?? null,
+            sourceType,
+            externalScore: article.externalScore ?? null,
+            externalCommentCount: article.externalCommentCount ?? null,
           },
           create: {
             title: resolvedTitle,
@@ -362,26 +374,39 @@ export class NewsService {
             urlToImage: resolvedImageUrl,
             publishedAt,
             source: resolvedSource,
-            author: null,
-            categoryId: categoryRecord.id,
+            author: article.author,
+            categoryId: categoryRecord?.id ?? null,
+            sourceType,
+            externalScore: article.externalScore ?? null,
+            externalCommentCount: article.externalCommentCount ?? null,
           },
         });
 
-        this.newsRagService.indexNews(savedNews.id).catch((error) => {
-          this.logger.warn(
-            `Failed to index news embedding for ${savedNews.id}: ${String(error)}`,
-          );
-        });
+        // RAG indexing/semantic-search is press-only (see news-rag.service);
+        // skip indexing community/blog content so it can never surface there.
+        if (sourceType === NewsSourceType.PRESS) {
+          this.newsRagService.indexNews(savedNews.id).catch((error) => {
+            this.logger.warn(
+              `Failed to index news embedding for ${savedNews.id}: ${String(error)}`,
+            );
+          });
+        }
 
         savedCount += 1;
       }
 
       this.logger.log(
-        `Cached ${savedCount} articles for category: ${normalizedCategory} (query: ${searchQuery})`,
+        `Cached ${savedCount} articles from ${source.displayName}` +
+          (normalizedCategory
+            ? ` for category: ${normalizedCategory} (query: ${searchQuery})`
+            : ''),
       );
       return savedCount;
     } catch (error: unknown) {
-      this.logger.error('Error fetching news from Naver API', error);
+      this.logger.error(
+        `Error fetching news from ${source.displayName}`,
+        error,
+      );
       return 0;
     }
   }
@@ -399,20 +424,56 @@ export class NewsService {
     });
   }
 
-  private parsePublishedDate(pubDate?: string): Date {
-    if (!pubDate) {
-      return new Date();
+  /**
+   * Latest developer/community items (GeekNews, Hacker News, ...) for the
+   * GeekNews-style screen. Deliberately the mirror image of `getNews`: it
+   * only ever returns non-press articles, so this is the one read path
+   * where press content is excluded rather than required.
+   */
+  async getCommunityNews(cursor?: string, limit: number = 20) {
+    const andConditions: Prisma.NewsWhereInput[] = [
+      { sourceType: { not: NewsSourceType.PRESS } },
+    ];
+
+    if (cursor) {
+      const decodedCursor = await this.decodeCursor(cursor);
+      andConditions.push({
+        OR: [
+          { publishedAt: { lt: decodedCursor.publishedAt } },
+          {
+            publishedAt: decodedCursor.publishedAt,
+            id: { lt: decodedCursor.id },
+          },
+        ],
+      });
     }
 
-    const parsed = new Date(pubDate);
-    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+    const where: Prisma.NewsWhereInput = { AND: andConditions };
+
+    const news = await this.prisma.news.findMany({
+      where,
+      take: limit + 1,
+      orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+    });
+
+    const hasMore = news.length > limit;
+    const items = hasMore ? news.slice(0, -1) : news;
+    const lastItem = items[items.length - 1];
+    const nextCursor = hasMore
+      ? this.encodeCursor(lastItem.publishedAt, lastItem.id)
+      : null;
+
+    return {
+      items,
+      nextCursor,
+      hasMore,
+    };
   }
 
   private async fetchArticleMetadata(
-    primaryUrl?: string,
-    fallbackUrl?: string,
+    candidateUrls: string[],
   ): Promise<CrawledArticleMetadata> {
-    const candidates = [...new Set([primaryUrl, fallbackUrl].filter(Boolean))];
+    const candidates = [...new Set(candidateUrls.filter(Boolean))];
 
     for (const candidateUrl of candidates) {
       if (!candidateUrl) {
@@ -438,6 +499,8 @@ export class NewsService {
       }
     }
 
+    const primaryUrl = candidates[0];
+
     return {
       title: null,
       description: null,
@@ -445,7 +508,7 @@ export class NewsService {
       contentHtml: null,
       contentExtracted: false,
       imageUrl: null,
-      source: primaryUrl ? this.extractSourceName(primaryUrl) : null,
+      source: primaryUrl ? extractSourceName(primaryUrl) : null,
     };
   }
 
@@ -477,7 +540,7 @@ export class NewsService {
         contentHtml: null,
         contentExtracted: false,
         imageUrl: null,
-        source: this.extractSourceName(url),
+        source: extractSourceName(url),
       };
     }
 
@@ -512,7 +575,7 @@ export class NewsService {
           'meta[property="og:site_name"]',
           'meta[name="application-name"]',
         ]) || '',
-      ) || this.extractSourceName(url);
+      ) || extractSourceName(url);
     const contentData = this.extractArticleContent($, description);
 
     return {
@@ -907,13 +970,5 @@ export class NewsService {
       '좋아요',
       '광고',
     ].some((keyword) => normalized.includes(keyword));
-  }
-
-  private extractSourceName(url: string): string {
-    try {
-      return new URL(url).hostname.replace(/^www\./, '');
-    } catch {
-      return 'Naver News';
-    }
   }
 }

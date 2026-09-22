@@ -34,6 +34,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum NewsSourceType {
+  PRESS
+  COMMUNITY
+  BLOG
+}
+
 model Category {
   id          String   @id @default(uuid())
   name        String   @unique
@@ -45,37 +51,41 @@ model Category {
 }
 
 model News {
-  id          String     @id @default(uuid())
-  title       String
-  description String?
-  content     String?
-  contentHtml String?
-  url         String     @unique
-  urlToImage  String?
-  publishedAt DateTime
-  source      String
-  author      String?
-  categoryId  String?
-  category    Category?  @relation(fields: [categoryId], references: [id])
-  embeddings  NewsEmbedding[]
-  llmSummary  NewsLlmSummary?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id                   String          @id @default(uuid())
+  title                String
+  description          String?
+  content              String?
+  contentHtml          String?
+  url                  String          @unique
+  urlToImage           String?
+  publishedAt          DateTime
+  source               String
+  author               String?
+  categoryId           String?
+  category             Category?       @relation(fields: [categoryId], references: [id])
+  sourceType           NewsSourceType  @default(PRESS)
+  externalScore        Int?
+  externalCommentCount Int?
+  embeddings           NewsEmbedding[]
+  llmSummary           NewsLlmSummary?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   @@index([publishedAt])
   @@index([categoryId])
+  @@index([sourceType, publishedAt])
 }
 
 model NewsEmbedding {
-  id        String   @id @default(uuid())
+  id        String                @id @default(uuid())
   newsId    String
   chunkText String
-  chunkHash String   @unique
+  chunkHash String                @unique
   model     String
   embedding Unsupported("vector")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  news      News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  news      News                  @relation(fields: [newsId], references: [id], onDelete: Cascade)
 
   @@index([newsId])
 }
