@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NewsSourceType } from '@prisma/client';
 import axios from 'axios';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -43,8 +44,10 @@ export class NewsSummaryService {
       throw new BadRequestException('Local LLM summary is disabled.');
     }
 
-    const news = await this.prisma.news.findUnique({
-      where: { id: newsId },
+    // The AI-summary feature only exists on the press news-detail screen;
+    // community/blog articles must not be summarized/cached through it.
+    const news = await this.prisma.news.findFirst({
+      where: { id: newsId, sourceType: NewsSourceType.PRESS },
       select: {
         id: true,
         title: true,

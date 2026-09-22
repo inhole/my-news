@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Cheerio, load } from 'cheerio';
 import type { AnyNode } from 'domhandler';
-import { NewsSourceAdapter, NormalizedArticle } from './news-source.interface';
+import {
+  NewsSourceAdapter,
+  NewsSourceFetchOptions,
+  NormalizedArticle,
+} from './news-source.interface';
 
 const EXCERPT_MAX_LENGTH = 300;
 
@@ -37,13 +41,19 @@ export class GeekNewsSource implements NewsSourceAdapter {
     return Boolean(this.feedUrl);
   }
 
-  async fetchArticles(): Promise<NormalizedArticle[]> {
+  async fetchArticles(
+    options: NewsSourceFetchOptions = {},
+  ): Promise<NormalizedArticle[]> {
     const response = await axios.get<string>(this.feedUrl, {
       responseType: 'text',
       timeout: 8000,
     });
 
-    return this.parseFeed(response.data);
+    const articles = this.parseFeed(response.data);
+
+    return typeof options.limit === 'number'
+      ? articles.slice(0, options.limit)
+      : articles;
   }
 
   parseFeed(xml: string): NormalizedArticle[] {

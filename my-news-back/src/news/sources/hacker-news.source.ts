@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { NewsSourceAdapter, NormalizedArticle } from './news-source.interface';
+import {
+  NewsSourceAdapter,
+  NewsSourceFetchOptions,
+  NormalizedArticle,
+} from './news-source.interface';
 
 interface HackerNewsItem {
   id: number;
@@ -55,9 +59,12 @@ export class HackerNewsSource implements NewsSourceAdapter {
     return Boolean(this.baseUrl);
   }
 
-  async fetchArticles(): Promise<NormalizedArticle[]> {
+  async fetchArticles(
+    options: NewsSourceFetchOptions = {},
+  ): Promise<NormalizedArticle[]> {
     const ids = await this.fetchTopStoryIds();
-    const targetIds = ids.slice(0, this.itemLimit);
+    const limit = options.limit ?? this.itemLimit;
+    const targetIds = ids.slice(0, limit);
 
     const items = await this.fetchItemsWithBoundedConcurrency(targetIds);
 

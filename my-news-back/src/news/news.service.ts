@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { NewsSourceType, Prisma } from '@prisma/client';
 import axios from 'axios';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import type { AnyNode, Element } from 'domhandler';
@@ -9,6 +9,20 @@ import { NEWS_CATEGORY_MAP, NEWS_CATEGORY_SLUGS } from './news-categories';
 import { NewsRagService } from './news-rag.service';
 import { extractSourceName } from './sources/extract-source-name.util';
 import { NewsSourcesRegistry } from './sources/news-sources.registry';
+
+/**
+ * Maps a news source adapter id to the `NewsSourceType` its articles are
+ * persisted as. Every existing read path (`getNews`, search, RAG) filters
+ * to `PRESS` only, so anything mapped here to `COMMUNITY`/`BLOG` never
+ * appears in those paths until a dedicated endpoint reads it.
+ */
+const SOURCE_TYPE_BY_ADAPTER_ID: Record<string, NewsSourceType> = {
+  naver: NewsSourceType.PRESS,
+  geeknews: NewsSourceType.COMMUNITY,
+  'hacker-news': NewsSourceType.COMMUNITY,
+};
+
+const DEFAULT_SOURCE_ID = 'naver';
 
 type CheerioNode = Cheerio<AnyNode>;
 
@@ -66,7 +80,12 @@ export class NewsService {
     category?: string,
     search?: string,
   ) {
-    const andConditions: Prisma.NewsWhereInput[] = [];
+    // Existing screens (home feed, /news list, category tabs, search) must
+    // only ever see press articles; community/blog sources (GeekNews,
+    // Hacker News) are read through a dedicated endpoint instead.
+    const andConditions: Prisma.NewsWhereInput[] = [
+      { sourceType: NewsSourceType.PRESS },
+    ];
 
     if (cursor) {
       const decodedCursor = await this.decodeCursor(cursor);
@@ -181,8 +200,10 @@ export class NewsService {
   }
 
   async getNewsById(id: string) {
-    return this.prisma.news.findUnique({
-      where: { id },
+    // The existing news-detail screen must only ever resolve press
+    // articles; community/blog items are not readable through this path.
+    return this.prisma.news.findFirst({
+      where: { id, sourceType: NewsSourceType.PRESS },
       include: {
         category: true,
         llmSummary: true,
@@ -194,41 +215,69 @@ export class NewsService {
     return this.getNews(cursor, limit, undefined, query);
   }
 
-  async fetchAndCacheNews(category?: string) {
-    const naverSource = this.newsSourcesRegistry.get('naver');
+  /**
+   * Fetches and caches articles from a source adapter. `sourceId` defaults
+   * to `'naver'` so every existing caller (batch cron, manual fetch,
+   * controller) keeps working unchanged with only a `category`.
+   *
+   * Naver is the only source with a category concept: it is queried per
+   * category with a `searchQuery` and its articles get `categoryId` set and
+   * `sourceType: PRESS`. GeekNews/Hacker News are single feeds with no
+   * category - their articles are saved with `categoryId: null` and
+   * `sourceType: COMMUNITY`, so they never enter a `Category`-scoped query
+   * and never appear in the existing category tabs.
+   */
+  async fetchAndCacheNews(
+    category?: string,
+    sourceId: string = DEFAULT_SOURCE_ID,
+  ) {
+    const source = this.newsSourcesRegistry.get(sourceId);
 
-    if (!naverSource || !naverSource.isConfigured()) {
-      this.logger.warn(
-        'NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is not configured',
-      );
+    if (!source) {
+      this.logger.warn(`Unknown news source: ${sourceId}`);
       return 0;
     }
 
-    const normalizedCategory = (category || 'general').toLowerCase();
-    const categoryDefinition = NEWS_CATEGORY_MAP[normalizedCategory];
-    const searchQuery =
-      categoryDefinition?.searchQuery || `${normalizedCategory} ?쒓뎅 ?댁뒪`;
+    if (!source.isConfigured()) {
+      this.logger.warn(`News source is not configured: ${sourceId}`);
+      return 0;
+    }
+
+    const sourceType =
+      SOURCE_TYPE_BY_ADAPTER_ID[sourceId] ?? NewsSourceType.PRESS;
+    const isNaver = sourceId === 'naver';
+    const normalizedCategory = isNaver
+      ? (category || 'general').toLowerCase()
+      : undefined;
+    const categoryDefinition = normalizedCategory
+      ? NEWS_CATEGORY_MAP[normalizedCategory]
+      : undefined;
+    const searchQuery = normalizedCategory
+      ? categoryDefinition?.searchQuery || `${normalizedCategory} ?쒓뎅 ?댁뒪`
+      : undefined;
 
     try {
-      const articles = await naverSource.fetchArticles({
+      const articles = await source.fetchArticles({
         category: normalizedCategory,
         searchQuery,
       });
 
-      const categoryRecord = await this.prisma.category.upsert({
-        where: { slug: normalizedCategory },
-        update: categoryDefinition
-          ? {
-              name: categoryDefinition.name,
-              description: categoryDefinition.description,
-            }
-          : {},
-        create: {
-          name: categoryDefinition?.name || normalizedCategory,
-          slug: normalizedCategory,
-          description: categoryDefinition?.description,
-        },
-      });
+      const categoryRecord = normalizedCategory
+        ? await this.prisma.category.upsert({
+            where: { slug: normalizedCategory },
+            update: categoryDefinition
+              ? {
+                  name: categoryDefinition.name,
+                  description: categoryDefinition.description,
+                }
+              : {},
+            create: {
+              name: categoryDefinition?.name || normalizedCategory,
+              slug: normalizedCategory,
+              description: categoryDefinition?.description,
+            },
+          })
+        : null;
 
       let savedCount = 0;
 
@@ -242,7 +291,7 @@ export class NewsService {
         const publishedAt = article.publishedAt;
         const title = this.normalizeText(article.title);
         const description = this.normalizeText(article.description);
-        const source = article.source;
+        const articleSourceLabel = article.source;
 
         const existingNews = await this.prisma.news.findUnique({
           where: { url },
@@ -254,7 +303,7 @@ export class NewsService {
         });
 
         const shouldEnrich =
-          !naverSource.skipContentCrawl &&
+          !source.skipContentCrawl &&
           (!existingNews ||
             !existingNews.urlToImage ||
             !existingNews.content ||
@@ -296,7 +345,7 @@ export class NewsService {
           this.buildParagraphHtml(
             resolvedContent || resolvedDescription || description,
           );
-        const resolvedSource = crawledMetadata?.source || source;
+        const resolvedSource = crawledMetadata?.source || articleSourceLabel;
         const resolvedImageUrl =
           crawledMetadata?.imageUrl || existingNews?.urlToImage || null;
 
@@ -311,7 +360,10 @@ export class NewsService {
             publishedAt,
             source: resolvedSource,
             author: article.author,
-            categoryId: categoryRecord.id,
+            categoryId: categoryRecord?.id ?? null,
+            sourceType,
+            externalScore: article.externalScore ?? null,
+            externalCommentCount: article.externalCommentCount ?? null,
           },
           create: {
             title: resolvedTitle,
@@ -323,25 +375,38 @@ export class NewsService {
             publishedAt,
             source: resolvedSource,
             author: article.author,
-            categoryId: categoryRecord.id,
+            categoryId: categoryRecord?.id ?? null,
+            sourceType,
+            externalScore: article.externalScore ?? null,
+            externalCommentCount: article.externalCommentCount ?? null,
           },
         });
 
-        this.newsRagService.indexNews(savedNews.id).catch((error) => {
-          this.logger.warn(
-            `Failed to index news embedding for ${savedNews.id}: ${String(error)}`,
-          );
-        });
+        // RAG indexing/semantic-search is press-only (see news-rag.service);
+        // skip indexing community/blog content so it can never surface there.
+        if (sourceType === NewsSourceType.PRESS) {
+          this.newsRagService.indexNews(savedNews.id).catch((error) => {
+            this.logger.warn(
+              `Failed to index news embedding for ${savedNews.id}: ${String(error)}`,
+            );
+          });
+        }
 
         savedCount += 1;
       }
 
       this.logger.log(
-        `Cached ${savedCount} articles for category: ${normalizedCategory} (query: ${searchQuery})`,
+        `Cached ${savedCount} articles from ${source.displayName}` +
+          (normalizedCategory
+            ? ` for category: ${normalizedCategory} (query: ${searchQuery})`
+            : ''),
       );
       return savedCount;
     } catch (error: unknown) {
-      this.logger.error('Error fetching news from Naver API', error);
+      this.logger.error(
+        `Error fetching news from ${source.displayName}`,
+        error,
+      );
       return 0;
     }
   }
@@ -357,6 +422,52 @@ export class NewsService {
       const bOrder = sortOrder.get(b.slug) ?? Number.MAX_SAFE_INTEGER;
       return aOrder - bOrder || a.name.localeCompare(b.name, 'ko');
     });
+  }
+
+  /**
+   * Latest developer/community items (GeekNews, Hacker News, ...) for the
+   * GeekNews-style screen. Deliberately the mirror image of `getNews`: it
+   * only ever returns non-press articles, so this is the one read path
+   * where press content is excluded rather than required.
+   */
+  async getCommunityNews(cursor?: string, limit: number = 20) {
+    const andConditions: Prisma.NewsWhereInput[] = [
+      { sourceType: { not: NewsSourceType.PRESS } },
+    ];
+
+    if (cursor) {
+      const decodedCursor = await this.decodeCursor(cursor);
+      andConditions.push({
+        OR: [
+          { publishedAt: { lt: decodedCursor.publishedAt } },
+          {
+            publishedAt: decodedCursor.publishedAt,
+            id: { lt: decodedCursor.id },
+          },
+        ],
+      });
+    }
+
+    const where: Prisma.NewsWhereInput = { AND: andConditions };
+
+    const news = await this.prisma.news.findMany({
+      where,
+      take: limit + 1,
+      orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+    });
+
+    const hasMore = news.length > limit;
+    const items = hasMore ? news.slice(0, -1) : news;
+    const lastItem = items[items.length - 1];
+    const nextCursor = hasMore
+      ? this.encodeCursor(lastItem.publishedAt, lastItem.id)
+      : null;
+
+    return {
+      items,
+      nextCursor,
+      hasMore,
+    };
   }
 
   private async fetchArticleMetadata(

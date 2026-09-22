@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
+import { NewsSourceType } from '@prisma/client';
 import axios from 'axios';
 import type { PrismaService } from '../prisma/prisma.service';
 import { NewsService } from './news.service';
@@ -44,6 +45,7 @@ describe('NewsService', () => {
     news: {
       findMany: jest.Mock;
       findUnique: jest.Mock;
+      findFirst: jest.Mock;
       upsert: jest.Mock;
     };
     category: {
@@ -61,6 +63,7 @@ describe('NewsService', () => {
       news: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         upsert: jest.fn(),
       },
       category: {
@@ -164,6 +167,7 @@ describe('NewsService', () => {
       const secondCallArgs = lastFindManyArgs(prisma.news.findMany, 1);
       expect(secondCallArgs.where).toEqual({
         AND: [
+          { sourceType: NewsSourceType.PRESS },
           {
             OR: [
               { publishedAt: { lt: anchor.publishedAt } },
@@ -202,6 +206,7 @@ describe('NewsService', () => {
       const secondCallWhere = lastFindManyArgs(prisma.news.findMany, 1).where;
       expect(secondCallWhere).toEqual({
         AND: [
+          { sourceType: NewsSourceType.PRESS },
           {
             OR: [
               { publishedAt: { lt: sameTimestamp } },
@@ -232,6 +237,7 @@ describe('NewsService', () => {
       const where = lastFindManyArgs(prisma.news.findMany, 0).where;
       expect(where).toEqual({
         AND: [
+          { sourceType: NewsSourceType.PRESS },
           {
             OR: [
               { publishedAt: { lt: legacyPublishedAt } },
@@ -284,7 +290,8 @@ describe('NewsService', () => {
       await service.getNews(page1.nextCursor as string, 20, 'technology', 'ai');
 
       const where = lastFindManyArgs(prisma.news.findMany, 1).where;
-      expect(where.AND).toHaveLength(3);
+      expect(where.AND).toHaveLength(4);
+      expect(where.AND).toContainEqual({ sourceType: NewsSourceType.PRESS });
       expect(where.AND).toContainEqual({ categoryId: 'cat-1' });
       expect(where.AND).toContainEqual({
         OR: [
@@ -292,6 +299,84 @@ describe('NewsService', () => {
           { description: { contains: 'ai', mode: 'insensitive' } },
         ],
       });
+    });
+
+    it('always filters to press articles, even with no cursor/category/search', async () => {
+      prisma.news.findMany.mockResolvedValueOnce([]);
+
+      await service.getNews();
+
+      const where = lastFindManyArgs(prisma.news.findMany, 0).where;
+      expect(where).toEqual({ AND: [{ sourceType: NewsSourceType.PRESS }] });
+    });
+  });
+
+  describe('getNewsById press-only guarantee', () => {
+    it('scopes the lookup to press articles so a community/blog id resolves to nothing', async () => {
+      prisma.news.findFirst.mockResolvedValueOnce(null);
+
+      await service.getNewsById('00000000-0000-4000-8000-000000000099');
+
+      expect(prisma.news.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: '00000000-0000-4000-8000-000000000099',
+            sourceType: NewsSourceType.PRESS,
+          },
+        }),
+      );
+    });
+  });
+
+  describe('getCommunityNews', () => {
+    it('filters to non-press sourceType and paginates like getNews', async () => {
+      const item = buildNewsRow({
+        id: '00000000-0000-4000-8000-0000000000c1',
+        sourceType: NewsSourceType.COMMUNITY,
+      });
+      prisma.news.findMany.mockResolvedValueOnce([item]);
+
+      const result = await service.getCommunityNews();
+
+      const where = lastFindManyArgs(prisma.news.findMany, 0).where;
+      expect(where).toEqual({
+        AND: [{ sourceType: { not: NewsSourceType.PRESS } }],
+      });
+      expect(result.items).toEqual([item]);
+    });
+
+    it('combines the non-press filter with the cursor condition', async () => {
+      const anchor = buildNewsRow({
+        id: '00000000-0000-4000-8000-0000000000c2',
+        publishedAt: new Date('2024-01-01T00:00:00.000Z'),
+        sourceType: NewsSourceType.COMMUNITY,
+      });
+      prisma.news.findMany.mockResolvedValueOnce([anchor]);
+      const page1 = await service.getCommunityNews(undefined, 1);
+      // only 1 row returned for take=2 -> hasMore=false, no cursor to follow;
+      // force a second call directly to inspect the cursor-combined where.
+      prisma.news.findMany.mockResolvedValueOnce([]);
+      const cursor = (
+        service as unknown as {
+          encodeCursor: (publishedAt: Date, id: string) => string;
+        }
+      ).encodeCursor(anchor.publishedAt, anchor.id);
+
+      await service.getCommunityNews(cursor, 20);
+
+      const where = lastFindManyArgs(prisma.news.findMany, 1).where;
+      expect(where).toEqual({
+        AND: [
+          { sourceType: { not: NewsSourceType.PRESS } },
+          {
+            OR: [
+              { publishedAt: { lt: anchor.publishedAt } },
+              { publishedAt: anchor.publishedAt, id: { lt: anchor.id } },
+            ],
+          },
+        ],
+      });
+      expect(page1.hasMore).toBe(false);
     });
   });
 
@@ -412,6 +497,87 @@ describe('NewsService', () => {
       const upsertArgs = lastUpsertArgs(prisma.news.upsert, 0);
       expect(upsertArgs.create.content).toBe('새 기사 설명');
       expect(upsertArgs.create.contentHtml).toBe('<p>새 기사 설명</p>');
+    });
+
+    it('persists sourceType PRESS and a categoryId for the default naver source', async () => {
+      mockedAxios.get.mockResolvedValueOnce(mockNaverApiResponse());
+      prisma.news.findUnique.mockResolvedValueOnce(null);
+      mockedAxios.get.mockRejectedValueOnce(new Error('network error'));
+
+      await service.fetchAndCacheNews('general');
+
+      const upsertArgs = lastUpsertArgs(prisma.news.upsert, 0);
+      expect(upsertArgs.create.sourceType).toBe(NewsSourceType.PRESS);
+      expect(upsertArgs.create.categoryId).toBe('cat-1');
+      expect(newsRagService.indexNews).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('fetchAndCacheNews source generalization', () => {
+    beforeEach(() => {
+      prisma.news.upsert.mockImplementation((args: NewsUpsertArgs) => ({
+        id: 'saved-id',
+        ...(args.update ?? args.create),
+      }));
+    });
+
+    it('persists geeknews articles as COMMUNITY with no category and skips RAG indexing', async () => {
+      const atomFeed = `<?xml version="1.0" encoding="UTF-8"?>
+        <feed xmlns="http://www.w3.org/2005/Atom">
+          <entry>
+            <title>GeekNews item</title>
+            <link rel="alternate" href="https://news.hada.io/topic?id=1" />
+            <author><name>submitter</name></author>
+            <published>2024-01-01T00:00:00Z</published>
+            <content type="html"><![CDATA[<p>본문 요약</p>]]></content>
+          </entry>
+        </feed>`;
+      mockedAxios.get.mockResolvedValueOnce({ data: atomFeed });
+
+      const savedCount = await service.fetchAndCacheNews(undefined, 'geeknews');
+
+      expect(savedCount).toBe(1);
+      expect(prisma.category.upsert).not.toHaveBeenCalled();
+      const upsertArgs = lastUpsertArgs(prisma.news.upsert, 0);
+      expect(upsertArgs.create.sourceType).toBe(NewsSourceType.COMMUNITY);
+      expect(upsertArgs.create.categoryId).toBeNull();
+      expect(newsRagService.indexNews).not.toHaveBeenCalled();
+    });
+
+    it('persists hacker-news articles as COMMUNITY with externalScore/externalCommentCount and skips RAG indexing', async () => {
+      mockedAxios.get.mockResolvedValueOnce({ data: [111] });
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          id: 111,
+          title: 'HN item',
+          url: 'https://example.com/hn-article',
+          by: 'someone',
+          score: 42,
+          descendants: 7,
+          time: 1704067200,
+          type: 'story',
+        },
+      });
+
+      const savedCount = await service.fetchAndCacheNews(
+        undefined,
+        'hacker-news',
+      );
+
+      expect(savedCount).toBe(1);
+      expect(prisma.category.upsert).not.toHaveBeenCalled();
+      const upsertArgs = lastUpsertArgs(prisma.news.upsert, 0);
+      expect(upsertArgs.create.sourceType).toBe(NewsSourceType.COMMUNITY);
+      expect(upsertArgs.create.categoryId).toBeNull();
+      expect(upsertArgs.create.externalScore).toBe(42);
+      expect(upsertArgs.create.externalCommentCount).toBe(7);
+      expect(newsRagService.indexNews).not.toHaveBeenCalled();
+    });
+
+    it('returns 0 and logs a warning for an unknown source id', async () => {
+      const savedCount = await service.fetchAndCacheNews(undefined, 'bogus');
+      expect(savedCount).toBe(0);
+      expect(mockedAxios.get.mock.calls).toHaveLength(0);
     });
   });
 });

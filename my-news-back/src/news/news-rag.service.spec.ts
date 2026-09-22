@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { NewsSourceType } from '@prisma/client';
 import axios from 'axios';
 import { NewsRagService } from './news-rag.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,7 +19,7 @@ function toRawCall(
 
 describe('NewsRagService', () => {
   let prisma: {
-    news: { findUnique: jest.Mock; findMany: jest.Mock };
+    news: { findUnique: jest.Mock; findFirst: jest.Mock; findMany: jest.Mock };
     $executeRaw: jest.Mock;
     $queryRaw: jest.Mock;
     $transaction: jest.Mock;
@@ -44,7 +45,11 @@ describe('NewsRagService', () => {
     executedInTransaction = [];
 
     prisma = {
-      news: { findUnique: jest.fn(), findMany: jest.fn() },
+      news: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+      },
       $executeRaw: jest
         .fn()
         .mockImplementation(
@@ -82,7 +87,7 @@ describe('NewsRagService', () => {
   });
 
   function findUniqueNews(overrides: Partial<Record<string, unknown>> = {}) {
-    prisma.news.findUnique.mockResolvedValue({
+    prisma.news.findFirst.mockResolvedValue({
       id: 'news-1',
       title: '제목',
       description: '설명',
@@ -90,6 +95,28 @@ describe('NewsRagService', () => {
       ...overrides,
     });
   }
+
+  describe('press-only indexing', () => {
+    it('looks up a single news item with a PRESS filter so community content is never embedded', async () => {
+      findUniqueNews();
+
+      await service.indexNews('news-1');
+
+      expect(prisma.news.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'news-1', sourceType: NewsSourceType.PRESS },
+        }),
+      );
+    });
+
+    it('skips indexing when the id belongs to non-press content', async () => {
+      prisma.news.findFirst.mockResolvedValue(null);
+
+      const result = await service.indexNews('community-1');
+
+      expect(result).toEqual({ indexed: 0, skipped: true });
+    });
+  });
 
   describe('atomic replacement', () => {
     it('deletes the old rows for the same news/model before inserting the newly generated chunks', async () => {
@@ -382,6 +409,35 @@ describe('NewsRagService', () => {
 
       expect(result).toEqual({ indexed: 0, skipped: true });
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('press-only filtering', () => {
+    it('indexRecentNews only selects press articles to re-embed', async () => {
+      prisma.news.findMany.mockResolvedValue([]);
+
+      await service.indexRecentNews(10);
+
+      expect(prisma.news.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { sourceType: 'PRESS' },
+        }),
+      );
+    });
+
+    it('semanticSearch restricts the joined News rows to sourceType PRESS', async () => {
+      prisma.$queryRaw.mockImplementation(
+        (strings: TemplateStringsArray, ...values: unknown[]) => {
+          const call = toRawCall(strings, values);
+          expect(call.text).toContain(`n."sourceType" = 'PRESS'`);
+          return Promise.resolve([]);
+        },
+      );
+
+      const result = await service.semanticSearch('테스트 검색어', 5);
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(result.items).toEqual([]);
     });
   });
 });
