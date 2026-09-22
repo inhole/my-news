@@ -38,6 +38,9 @@ LOCAL_LLM_SUMMARY_MAX_INPUT=6000
 
 ## API 흐름
 
+`refresh=false`(기본값)는 공개 API입니다. 캐시가 없으면 이 요청만으로도 최초 요약이
+생성됩니다.
+
 ```http
 POST /news/{id}/summary
 Content-Type: application/json
@@ -47,12 +50,28 @@ Content-Type: application/json
 }
 ```
 
+`refresh=true`로 기존 캐시를 무시하고 강제로 재생성하려면 관리자 전용이며
+`x-news-admin-key` 헤더에 `NEWS_ADMIN_API_KEY` 값을 담아야 합니다. 키가 없거나
+틀리면 401/403으로 거부됩니다. 자세한 설정은 `docs/환경-설정.md`의 "관리자 API 키"
+절을 참고합니다.
+
+```http
+POST /news/{id}/summary
+Content-Type: application/json
+x-news-admin-key: {NEWS_ADMIN_API_KEY}
+
+{
+  "refresh": true
+}
+```
+
 처리 흐름:
 
 1. `News.title`, `News.description`, `News.content`를 합쳐 요약 입력을 만듭니다.
 2. 입력 본문의 hash를 계산합니다.
 3. 같은 기사, 같은 모델, 같은 본문 hash의 캐시가 있으면 `NewsLlmSummary`를 재사용합니다.
-4. 캐시가 없거나 `refresh=true`이면 Ollama `/api/generate`로 새 요약을 생성합니다.
+4. 캐시가 없거나(공개) `refresh=true`(관리자 전용)이면 Ollama `/api/generate`로 새
+   요약을 생성합니다.
 5. 응답은 3줄 요약 형태로 프론트에 표시합니다.
 
 ## 모델 선택 기준
@@ -83,4 +102,6 @@ ENABLE_LOCAL_LLM_SUMMARY=false
 
 - 요약 기능은 생성형 LLM을 사용하므로 임베딩 모델과 별도로 관리합니다.
 - 모델을 바꾸면 기존 캐시와 다른 결과가 생기므로 `refresh=true`로 재생성해야 합니다.
+- `refresh=true` 강제 재생성은 관리자 전용이며 `NEWS_ADMIN_API_KEY`가 설정되어 있어야
+  동작합니다(fail-closed). 프론트에는 이 키를 노출하지 않습니다.
 - `qwen3` 계열의 thinking 출력이 섞일 수 있어 백엔드에서 `<think>...</think>` 블록을 제거합니다.

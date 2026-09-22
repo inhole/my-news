@@ -42,6 +42,13 @@ interface NewsForEmbedding {
   content: string | null;
 }
 
+interface PreparedEmbeddingRecord {
+  id: string;
+  chunkText: string;
+  chunkHash: string;
+  vector: string;
+}
+
 @Injectable()
 export class NewsRagService {
   private readonly logger = new Logger(NewsRagService.name);
@@ -51,6 +58,8 @@ export class NewsRagService {
   private readonly ollamaBaseUrl: string;
   private readonly chunkSize: number;
   private readonly chunkOverlap: number;
+  // newsId+model 단위 in-process 직렬화로 동시 재색인 시 delete-insert 경쟁을 막는다.
+  private readonly indexLocks = new Map<string, Promise<void>>();
 
   constructor(
     private prisma: PrismaService,
@@ -215,51 +224,103 @@ export class NewsRagService {
   }
 
   private async indexNewsRecord(news: NewsForEmbedding) {
+    return this.withLock(`${news.id}:${this.embeddingModel}`, () =>
+      this.replaceNewsEmbeddings(news),
+    );
+  }
+
+  // 임베딩은 트랜잭션 밖에서 모두 생성한 뒤, 삭제+삽입만 트랜잭션으로 원자 처리한다.
+  private async replaceNewsEmbeddings(news: NewsForEmbedding) {
     const chunks = this.buildChunks(news);
 
     if (chunks.length === 0) {
+      const removed = await this.prisma.$executeRaw`
+        DELETE FROM "NewsEmbedding"
+        WHERE "newsId" = ${news.id} AND "model" = ${this.embeddingModel}
+      `;
+
+      if (removed > 0) {
+        this.logger.log(
+          `Removed ${removed} stale embedding row(s) for news ${news.id} because the source text is now empty.`,
+        );
+      }
+
       return { indexed: 0, skipped: true };
     }
 
-    let indexed = 0;
+    const records: PreparedEmbeddingRecord[] = [];
+    const seenHashes = new Set<string>();
 
     for (const chunkText of chunks) {
       const chunkHash = this.hashChunk(news.id, chunkText);
+
+      // chunkHash is globally unique; skip repeated identical chunk text to avoid an insert conflict.
+      if (seenHashes.has(chunkHash)) {
+        continue;
+      }
+      seenHashes.add(chunkHash);
+
       const embedding = await this.createEmbedding(chunkText);
-      const vector = this.toVectorLiteral(embedding);
 
-      await this.prisma.$executeRaw`
-        INSERT INTO "NewsEmbedding" (
-          "id",
-          "newsId",
-          "chunkText",
-          "chunkHash",
-          "model",
-          "embedding",
-          "createdAt",
-          "updatedAt"
-        )
-        VALUES (
-          ${randomUUID()},
-          ${news.id},
-          ${chunkText},
-          ${chunkHash},
-          ${this.embeddingModel},
-          ${vector}::vector,
-          CURRENT_TIMESTAMP,
-          CURRENT_TIMESTAMP
-        )
-        ON CONFLICT ("chunkHash") DO UPDATE SET
-          "chunkText" = EXCLUDED."chunkText",
-          "model" = EXCLUDED."model",
-          "embedding" = EXCLUDED."embedding",
-          "updatedAt" = CURRENT_TIMESTAMP;
-      `;
-
-      indexed += 1;
+      records.push({
+        id: randomUUID(),
+        chunkText,
+        chunkHash,
+        vector: this.toVectorLiteral(embedding),
+      });
     }
 
-    return { indexed, skipped: false };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        DELETE FROM "NewsEmbedding"
+        WHERE "newsId" = ${news.id} AND "model" = ${this.embeddingModel}
+      `;
+
+      for (const record of records) {
+        await tx.$executeRaw`
+          INSERT INTO "NewsEmbedding" (
+            "id",
+            "newsId",
+            "chunkText",
+            "chunkHash",
+            "model",
+            "embedding",
+            "createdAt",
+            "updatedAt"
+          )
+          VALUES (
+            ${record.id},
+            ${news.id},
+            ${record.chunkText},
+            ${record.chunkHash},
+            ${this.embeddingModel},
+            ${record.vector}::vector,
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+          )
+        `;
+      }
+    });
+
+    return { indexed: records.length, skipped: false };
+  }
+
+  private async withLock<T>(key: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.indexLocks.get(key) ?? Promise.resolve();
+    const run = previous.then(task, task);
+    const tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    this.indexLocks.set(key, tail);
+    void tail.finally(() => {
+      if (this.indexLocks.get(key) === tail) {
+        this.indexLocks.delete(key);
+      }
+    });
+
+    return run;
   }
 
   private buildChunks(news: NewsForEmbedding): string[] {

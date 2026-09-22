@@ -13,7 +13,6 @@
 
 작업 성격이 아래 항목과 맞으면 해당 `SKILL.md`를 먼저 읽고 따른다.
 
-- `agents/gpt-5-5-prompting/SKILL.md`: GPT-5.5용 프롬프트, 시스템 메시지, 에이전트 지침 작성/개선/마이그레이션
 - `agents/next-toss-ui/SKILL.md`: Next.js 프론트엔드 UI, 토스 디자인 톤, 반응형/CSS 충돌 검증
 - `agents/nest-prisma-api/SKILL.md`: NestJS API, Prisma/Neon DB, 백엔드 서비스/DTO/마이그레이션 작업
 - `agents/docs-env-sync/SKILL.md`: 환경 변수, 실행 명령, 배포/DB 문서 동기화

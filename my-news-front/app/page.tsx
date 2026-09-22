@@ -17,6 +17,7 @@ import {
   rankPersonalizedNews,
   type PersonalizedNewsItem,
 } from '@/lib/personalization/personalized-feed';
+import { shouldAutoFetchNextPersonalizedPage } from '@/lib/personalization/personalized-pagination';
 import { trackNewsInterest } from '@/lib/personalization/signal-tracker';
 import type { News } from '@/types';
 
@@ -456,13 +457,52 @@ function TrendingTopSection({ articles }: { articles: RankedTrendingNews[] }) {
 function PersonalizedSection({
   articles,
   isLoadingMore,
+  isSearchingForMatches,
+  loadMoreError,
+  hasPreferredCategoryFilter,
+  onRetryLoadMore,
   sentinelRef,
 }: {
   articles: PersonalizedNewsItem[];
   isLoadingMore: boolean;
+  isSearchingForMatches: boolean;
+  loadMoreError: Error | null;
+  hasPreferredCategoryFilter: boolean;
+  onRetryLoadMore: () => void;
   sentinelRef: React.RefObject<HTMLDivElement | null>;
 }) {
   if (articles.length === 0) {
+    if (loadMoreError) {
+      return (
+        <ErrorMessage
+          title="맞춤 뉴스를 더 불러오지 못했습니다"
+          message={loadMoreError.message || '잠시 후 다시 시도해 주세요.'}
+          onRetry={onRetryLoadMore}
+        />
+      );
+    }
+
+    if (isSearchingForMatches) {
+      return (
+        <div className="toss-card flex flex-col items-center justify-center px-6 py-14 text-center">
+          <LoadingSpinner size="small" />
+          <p className="mt-4 text-sm leading-6 text-[#6b7280]">
+            관심 카테고리에 맞는 기사를 더 찾는 중입니다.
+          </p>
+        </div>
+      );
+    }
+
+    if (hasPreferredCategoryFilter) {
+      return (
+        <EmptyState
+          title="선호 카테고리와 일치하는 기사를 찾지 못했습니다"
+          message="현재 수집된 기사 중에는 선택한 카테고리와 맞는 기사가 없습니다. 카테고리 설정을 바꾸거나 잠시 후 다시 확인해 주세요."
+          icon={<Sparkles className="mb-4 h-12 w-12 text-[#9ca3af]" />}
+        />
+      );
+    }
+
     return (
       <EmptyState
         title="개인화할 반응이 아직 부족합니다"
@@ -484,8 +524,23 @@ function PersonalizedSection({
       <div className="mt-6">
         <EditorialList articles={articles} personalized />
       </div>
-      <div ref={sentinelRef} className="flex h-12 items-center justify-center pt-4">
-        {isLoadingMore ? <LoadingSpinner size="small" /> : null}
+      <div ref={sentinelRef} className="flex h-12 flex-col items-center justify-center gap-2 pt-4 text-center">
+        {loadMoreError ? (
+          <>
+            <p className="text-sm text-[#6b7280]">
+              {loadMoreError.message || '기사를 더 불러오지 못했습니다.'}
+            </p>
+            <button
+              type="button"
+              onClick={onRetryLoadMore}
+              className="text-sm font-semibold text-[var(--primary-strong)] underline underline-offset-2"
+            >
+              다시 시도
+            </button>
+          </>
+        ) : isLoadingMore ? (
+          <LoadingSpinner size="small" />
+        ) : null}
       </div>
     </section>
   );
@@ -623,6 +678,7 @@ function HomeContent() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
   } = useInfiniteNews();
   const profile = useSyncExternalStore(subscribeProfile, getProfileSnapshot, () => null);
 
@@ -687,7 +743,12 @@ function HomeContent() {
 
     const observer = new IntersectionObserver(
       async (entries) => {
-        if (!entries[0]?.isIntersecting || isLoadingMorePersonalized || isFetchingNextPage) {
+        if (
+          !entries[0]?.isIntersecting ||
+          isLoadingMorePersonalized ||
+          isFetchingNextPage ||
+          isFetchNextPageError
+        ) {
           return;
         }
 
@@ -695,7 +756,10 @@ function HomeContent() {
 
         try {
           if (personalizedVisibleCount >= orderedPersonalizedArticles.length && hasNextPage) {
-            await fetchNextPage();
+            const result = await fetchNextPage();
+            if (result.isError) {
+              return;
+            }
           }
 
           setPersonalizedVisibleCount((current) => current + PERSONALIZED_PAGE_SIZE);
@@ -717,17 +781,50 @@ function HomeContent() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     isLoadingMorePersonalized,
     orderedPersonalizedArticles.length,
     personalizedVisibleCount,
     selectedTab,
   ]);
 
+  useEffect(() => {
+    const shouldAutoFetch = shouldAutoFetchNextPersonalizedPage({
+      isPersonalizedTabSelected: selectedTab === 'personalized',
+      filteredArticleCount: orderedPersonalizedArticles.length,
+      hasNextPage: Boolean(hasNextPage),
+      isFetchingNextPage,
+      isLoadingMorePersonalized,
+      isFetchNextPageError,
+    });
+
+    if (!shouldAutoFetch) {
+      return;
+    }
+
+    fetchNextPage();
+  }, [
+    selectedTab,
+    orderedPersonalizedArticles.length,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoadingMorePersonalized,
+    isFetchNextPageError,
+    fetchNextPage,
+  ]);
+
+  const isSearchingPersonalizedMatches =
+    visiblePersonalizedArticles.length === 0 &&
+    (isFetchingNextPage || isLoadingMorePersonalized) &&
+    !isFetchNextPageError;
+  const personalizedLoadMoreError = isFetchNextPageError ? error : null;
+  const hasPreferredCategoryFilter = (profile?.preferredCategorySlugs.length ?? 0) > 0;
+
   if (isLoading) {
     return <HomeLoading />;
   }
 
-  if (isError) {
+  if (isError && !isFetchNextPageError) {
     return (
       <ErrorMessage
         title="뉴스를 불러오지 못했습니다"
@@ -764,6 +861,10 @@ function HomeContent() {
         <PersonalizedSection
           articles={visiblePersonalizedArticles}
           isLoadingMore={isLoadingMorePersonalized || isFetchingNextPage}
+          isSearchingForMatches={isSearchingPersonalizedMatches}
+          loadMoreError={personalizedLoadMoreError}
+          hasPreferredCategoryFilter={hasPreferredCategoryFilter}
+          onRetryLoadMore={() => fetchNextPage()}
           sentinelRef={personalizedSentinelRef}
         />
       ) : null}

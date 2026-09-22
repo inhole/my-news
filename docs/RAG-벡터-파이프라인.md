@@ -36,15 +36,20 @@ RAG 벡터 검색은 기사 내용을 숫자 벡터로 바꿔 저장해 두고, 
 
 1. `News.title`, `News.description`, `News.content`를 하나의 텍스트로 합칩니다.
 2. `RAG_CHUNK_SIZE` 기준으로 본문을 chunk로 나눕니다.
-3. 각 chunk를 Ollama `/api/embeddings`에 전달합니다.
-4. 응답으로 받은 벡터를 `NewsEmbedding.embedding`에 저장합니다.
-5. 같은 chunk는 `chunkHash`로 중복 저장을 막습니다.
+3. 나눈 chunk 전체에 대해 Ollama `/api/embeddings`로 벡터를 먼저 모두 생성합니다.
+4. 벡터 생성이 모두 끝나면 같은 뉴스 + 현재 `RAG_EMBEDDING_MODEL` 조합의 기존 `NewsEmbedding` 행을 삭제하고 새 chunk를 삽입하는 작업을 하나의 트랜잭션으로 처리합니다.
+5. 벡터 생성 중 실패하거나 트랜잭션이 실패하면 기존 색인은 삭제되지 않고 그대로 검색에 남습니다.
+6. 같은 `newsId` + `model` 조합에 대한 재색인 요청은 서버 프로세스 내에서 순서대로만 실행되도록 직렬화해, 동시 재색인 요청이 삭제/삽입을 서로 경쟁하며 일부 chunk를 잃어버리는 상황을 막습니다.
+7. 삭제·삽입 범위는 재색인 대상 뉴스와 현재 임베딩 모델로 한정되므로, 과거에 다른 임베딩 모델로 색인한 행이나 다른 뉴스의 행은 영향받지 않습니다.
+8. 기사 제목/설명/본문이 모두 비어 색인할 chunk가 없으면, 새로 만들 chunk가 없다는 이유만으로 기존 색인을 남겨두지 않고 같은 뉴스 + 모델의 기존 행을 명시적으로 삭제해 더 이상 검색되지 않게 합니다.
+9. 반복되는 본문 등으로 인해 동일한 chunk 텍스트가 여러 번 나오면 `chunkHash`가 같아지므로, 삽입 전에 중복 chunk를 제거해 유니크 제약 충돌 없이 한 번만 저장합니다.
 
-기존 뉴스는 아래 API로 재색인합니다.
+기존 뉴스는 아래 API로 재색인합니다. 관리자 전용 API이므로 `x-news-admin-key` 헤더에 서버에 설정된 `NEWS_ADMIN_API_KEY` 값을 담아 호출해야 하며, 없거나 값이 다르면 각각 403/401로 거부됩니다. `limit`은 1~100 사이만 허용합니다.
 
 ```http
 POST /news/embeddings/reindex
 Content-Type: application/json
+x-news-admin-key: <NEWS_ADMIN_API_KEY 값>
 
 {
   "limit": 50
@@ -58,6 +63,8 @@ Content-Type: application/json
 ```http
 GET /news/semantic-search?q=AI%20반도체%20전망&limit=10
 ```
+
+검색 API는 인증이 필요 없는 공개 API이며, `limit`은 1~50 사이만 허용합니다.
 
 백엔드 처리 흐름:
 
@@ -86,7 +93,10 @@ RAG_EMBEDDING_MODEL=nomic-embed-text
 RAG_CHUNK_SIZE=1200
 RAG_CHUNK_OVERLAP=160
 OLLAMA_BASE_URL=http://localhost:11434
+NEWS_ADMIN_API_KEY=<관리자 전용 재색인/요약 재생성 API 키>
 ```
+
+`NEWS_ADMIN_API_KEY`가 설정되지 않은 서버는 `POST /news/embeddings/reindex` 요청을 403으로 거부합니다.
 
 ## DB 반영
 
@@ -122,6 +132,8 @@ RAG 검색만 운영에서 사용하려면 embedding 생성 작업을 로컬 또
 - `NewsEmbedding.embedding`은 Prisma가 직접 지원하지 않는 PostgreSQL `vector` 타입이라 raw SQL을 사용합니다.
 - 임베딩 모델을 바꾸면 벡터 차원이 달라질 수 있으므로 `vector(768)` 마이그레이션도 함께 조정해야 합니다.
 - 더 작은 `all-minilm`도 사용할 수 있지만 벡터 차원이 384라 DB 마이그레이션 변경과 검색 품질 재검증이 필요합니다.
+- 재색인은 삭제 후 삽입으로 기존 chunk를 완전히 교체합니다. 기사 내용이 바뀌어 chunk 해시가 달라져도 이전 내용의 행이 남아 계속 검색되는 문제(오래된 색인)가 생기지 않습니다.
+- 동시성 제어는 스키마 변경 없이 애플리케이션 프로세스 내부의 순차 실행(직렬화)으로만 처리합니다. 여러 서버 인스턴스에서 같은 뉴스를 동시에 재색인하는 경우까지는 막지 못하므로, 다중 인스턴스 배포에서 재색인 동시 실행이 우려되면 스케줄러/큐 레벨에서 같은 뉴스에 대한 재색인 요청이 겹치지 않도록 조정해야 합니다.
 
 ## 한글 검색 품질 보정
 

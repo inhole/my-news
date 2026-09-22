@@ -77,6 +77,7 @@ NAVER_CLIENT_SECRET=...
 NAVER_NEWS_API_URL=https://openapi.naver.com/v1/search/news.json
 OPEN_METEO_API_URL=https://api.open-meteo.com/v1
 OPEN_METEO_AIR_QUALITY_API_URL=https://air-quality-api.open-meteo.com/v1
+NEWS_ADMIN_API_KEY=your-production-admin-key
 ```
 
 주의:
@@ -85,6 +86,8 @@ OPEN_METEO_AIR_QUALITY_API_URL=https://air-quality-api.open-meteo.com/v1
 - 커스텀 도메인까지 붙일 계획이면 쉼표로 여러 개 넣을 수 있습니다.
 - 운영에서는 `ENABLE_SWAGGER=false`가 맞습니다.
 - 현재 프로젝트는 `PORT` 환경변수를 읽어 서버를 실행하므로 Render 기본 포트 바인딩 방식과 맞습니다.
+- `NEWS_ADMIN_API_KEY`를 설정하지 않으면 임베딩 재색인과 강제 요약 재생성 요청은
+  항상 거부됩니다(fail-closed). 이 키는 프론트엔드에 노출하지 않습니다.
 
 ### 3-4. 배포 후 확인
 

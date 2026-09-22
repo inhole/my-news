@@ -139,15 +139,17 @@ export default function NewsDetailPage() {
                 ) : null}
               </div>
 
-              <button
-                type="button"
-                onClick={() => summarizeNews.mutate(summaryLines.length > 0)}
-                disabled={summarizeNews.isPending}
-                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[8px] bg-[var(--primary)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Sparkles className="h-4 w-4" />
-                <span>{summarizeNews.isPending ? '요약 중' : summaryLines.length > 0 ? '다시 요약' : '요약 생성'}</span>
-              </button>
+              {summaryLines.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => summarizeNews.mutate(false)}
+                  disabled={summarizeNews.isPending}
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[8px] bg-[var(--primary)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>{summarizeNews.isPending ? '요약 중' : '요약 생성'}</span>
+                </button>
+              ) : null}
             </div>
           </section>
 
